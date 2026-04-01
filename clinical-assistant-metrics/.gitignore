@@ -14,4 +14,3 @@ wheels/
 .env
 outputs/
 notebooks/
-data/
