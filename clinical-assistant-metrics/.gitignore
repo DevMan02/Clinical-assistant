@@ -10,7 +10,8 @@ wheels/
 .venv
 
 .vscode
+.claude
 
 .env
-outputs/
+
 notebooks/
