@@ -1,8 +1,0 @@
-{
-  "python.analysis.extraPaths": [
-    "./Clinical-assistant/clinical-assistant-metrics/src"
-  ],
-  "python.autoComplete.extraPaths": [
-    "./Clinical-assistant/clinical-assistant-metrics/src"
-  ]
-}
