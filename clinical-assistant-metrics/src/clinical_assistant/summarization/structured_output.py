@@ -52,3 +52,24 @@ class OpenAIClient:
             **parse_kwargs,
         )
         return response.output_parsed
+
+
+class LlamaCppClient:
+    """Client per llama.cpp server (e qualsiasi server OpenAI-compatibile che usa
+    Chat Completions invece della Responses API).
+    Avvia il server con: llama-server -m model.gguf --port 8000 -ngl 99
+    """
+
+    def __init__(self, client: AsyncOpenAI, model: str, max_output_tokens: int = 8192):
+        self.client = client
+        self.model = model
+        self.max_output_tokens = max_output_tokens
+
+    async def structured_output[T: BaseModel](self, prompt: str, output_format: type[T]) -> T | None:
+        response = await self.client.beta.chat.completions.parse(
+            model=self.model,
+            max_tokens=self.max_output_tokens,
+            messages=[{"role": "user", "content": prompt}],
+            response_format=output_format,
+        )
+        return response.choices[0].message.parsed

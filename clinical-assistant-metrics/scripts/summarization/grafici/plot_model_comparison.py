@@ -4,11 +4,11 @@ plot_model_comparison.py
 Confronto pulito tra i tre scenari con due letture separate:
 
   C vs B = effetto modello puro
-           FP8 self-history  vs  2507 self-history
+           modello_C self-history  vs  modello_B self-history
            stessa struttura di contesto, modelli diversi
 
   A vs C = effetto contesto puro
-           FP8 gold-history  vs  FP8 self-history
+           modello_A gold-history  vs  modello_A self-history
            stesso modello, contesto diverso
 
 Visualizzazioni:
@@ -18,7 +18,7 @@ Visualizzazioni:
 
 Esecuzione:
   cd clinical-assistant-metrics
-  PYTHONPATH=src uv run python scripts/summarization/grafici/plot_model_comparison.py
+  PYTHONPATH=src uv run python scripts/summarization/grafici/plot_model_comparison.py --model <nome-modello>
 """
 
 import argparse
@@ -125,8 +125,20 @@ def _item_overlap(ra: dict, rb: dict, rc: dict) -> dict:
     return counts
 
 
-def plot(patient_id: str, output_dir: Path, save_path: Path | None = None) -> None:
-    scenario_dir = output_dir / patient_id
+def _short_name(model_source: str) -> str:
+    """Restituisce la parte finale del model_source (dopo l'ultimo '/')."""
+    return model_source.split("/")[-1]
+
+
+def _model_slug(model: str) -> str:
+    return model.replace("/", "-").replace(".", "-")
+
+
+def plot(patient_id: str, output_dir: Path, model: str | None = None, save_path: Path | None = None) -> None:
+    if model:
+        scenario_dir = output_dir / _model_slug(model) / patient_id
+    else:
+        scenario_dir = output_dir / patient_id
 
     def _load(pat):
         rows = [json.loads(p.read_text(encoding="utf-8"))
@@ -142,6 +154,10 @@ def plot(patient_id: str, output_dir: Path, save_path: Path | None = None) -> No
             f"Nessun file scenario_c in {scenario_dir}. "
             "Riesegui generate_scenario_jsons.py per generare il Scenario C."
         )
+
+    name_a = _short_name(rows_a[0].get("model_source", "model_A")) if rows_a else "model_A"
+    name_b = _short_name(rows_b[0].get("model_source", "model_B")) if rows_b else "model_B"
+    name_c = _short_name(rows_c[0].get("model_source", "model_C")) if rows_c else "model_C"
 
     n_docs = len(rows_a)
     x = np.arange(n_docs)
@@ -167,11 +183,11 @@ def plot(patient_id: str, output_dir: Path, save_path: Path | None = None) -> No
     # ── subplot 1: score_delta A / B / C ──────────────────────────────────
     ax1 = axes[0]
     ax1.plot(x, delta_a, color=COLOR_A, marker="o", linewidth=2.2, markersize=7,
-             label="A — FP8 + gold history")
+             label=f"A — {name_a} + gold history")
     ax1.plot(x, delta_b, color=COLOR_B, marker="o", linewidth=2.2, markersize=7,
-             label="B — 2507 + self history", linestyle="--")
+             label=f"B — {name_b} + self history", linestyle="--")
     ax1.plot(x, delta_c, color=COLOR_C, marker="o", linewidth=2.2, markersize=7,
-             label="C — FP8 + self history", linestyle=":")
+             label=f"C — {name_c} + self history", linestyle=":")
 
     for xi, va, vb, vc in zip(x, delta_a, delta_b, delta_c):
         ax1.annotate(f"{va:.2f}", (xi, va), textcoords="offset points",
@@ -197,10 +213,10 @@ def plot(patient_id: str, output_dir: Path, save_path: Path | None = None) -> No
 
     ax2.bar(x - bar_w / 2, gain_model,   bar_w,
             color=[COLOR_C if g >= 0 else "#dc2626" for g in gain_model],
-            alpha=0.85, label="C−B  effetto modello (FP8 vs 2507)")
+            alpha=0.85, label=f"C−B  effetto modello ({name_c} vs {name_b})")
     ax2.bar(x + bar_w / 2, gain_context, bar_w,
             color=[COLOR_A if g >= 0 else "#dc2626" for g in gain_context],
-            alpha=0.85, label="A−C  effetto contesto (gold vs self)")
+            alpha=0.85, label=f"A−C  effetto contesto ({name_a} gold vs self)")
 
     for xi, gm, gc in zip(x, gain_model, gain_context):
         ax2.text(xi - bar_w / 2, gm + (0.005 if gm >= 0 else -0.02),
@@ -225,14 +241,14 @@ def plot(patient_id: str, output_dir: Path, save_path: Path | None = None) -> No
 
     bot = np.zeros(n_docs)
     for values, color, label, alpha in [
-        (_pct("abc"),    "#7c3aed", "A∩B∩C (tutti)",              0.90),
-        (_pct("ac"),     COLOR_A,   "A∩C (FP8, entrambi contesti)", 0.70),
-        (_pct("ab"),     "#60a5fa", "A∩B (gold+2507)",             0.70),
-        (_pct("bc"),     "#fdba74", "B∩C (self history)",          0.70),
-        (_pct("only_a"), COLOR_A,   "Solo A",                      0.45),
-        (_pct("only_b"), COLOR_B,   "Solo B",                      0.45),
-        (_pct("only_c"), COLOR_C,   "Solo C",                      0.45),
-        (_pct("none"),   "#9ca3af", "Nessuno (miss)",              0.50),
+        (_pct("abc"),    "#7c3aed", "A∩B∩C (tutti)",                        0.90),
+        (_pct("ac"),     COLOR_A,   f"A∩C ({name_a}, entrambi contesti)",   0.70),
+        (_pct("ab"),     "#60a5fa", f"A∩B (gold+{name_b})",                 0.70),
+        (_pct("bc"),     "#fdba74", "B∩C (self history)",                   0.70),
+        (_pct("only_a"), COLOR_A,   "Solo A",                               0.45),
+        (_pct("only_b"), COLOR_B,   "Solo B",                               0.45),
+        (_pct("only_c"), COLOR_C,   "Solo C",                               0.45),
+        (_pct("none"),   "#9ca3af", "Nessuno (miss)",                       0.50),
     ]:
         ax3.bar(x, values, bottom=bot, color=color, alpha=alpha, label=label)
         bot = bot + np.array(values)
@@ -260,14 +276,18 @@ def plot(patient_id: str, output_dir: Path, save_path: Path | None = None) -> No
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Confronto modello FP8 vs 2507 con Scenario C.")
+    parser = argparse.ArgumentParser(description="Confronto scenari A/B/C per un modello.")
     parser.add_argument("--patient-id", default="10000032")
     parser.add_argument("--output-dir", default="outputs/summarization/scenario_comparison")
+    parser.add_argument("--model", default=None,
+                        help="Nome modello usato in generate_scenario_jsons.py (es. Qwen/Qwen3-4B-Instruct-2507-FP8). "
+                             "Se omesso, cerca in <output-dir>/<patient-id>/ (compatibilità vecchi run).")
     parser.add_argument("--save-path", default=None)
     args = parser.parse_args()
 
     plot(
         patient_id=args.patient_id,
         output_dir=Path(args.output_dir),
+        model=args.model,
         save_path=Path(args.save_path) if args.save_path else None,
     )

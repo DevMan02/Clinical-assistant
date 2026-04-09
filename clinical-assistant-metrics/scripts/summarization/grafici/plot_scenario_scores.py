@@ -40,8 +40,19 @@ def _load_scenarios(scenario_dir: Path) -> tuple[list[dict], list[dict], list[di
     return _load("doc_*_scenario_a.json"), _load("doc_*_scenario_b.json"), _load("doc_*_scenario_c.json")
 
 
-def plot(patient_id: str, output_dir: Path, save_path: Path | None = None) -> None:
-    scenario_dir = output_dir / patient_id
+def _model_slug(model: str) -> str:
+    return model.replace("/", "-").replace(".", "-")
+
+
+def _short_name(model_source: str) -> str:
+    return model_source.split("/")[-1]
+
+
+def plot(patient_id: str, output_dir: Path, model: str | None = None, save_path: Path | None = None) -> None:
+    if model:
+        scenario_dir = output_dir / _model_slug(model) / patient_id
+    else:
+        scenario_dir = output_dir / patient_id
     rows_a, rows_b, rows_c = _load_scenarios(scenario_dir)
 
     if not rows_a or not rows_b:
@@ -50,12 +61,16 @@ def plot(patient_id: str, output_dir: Path, save_path: Path | None = None) -> No
     has_c = len(rows_c) == len(rows_a)
     has_delta = "score_delta" in rows_a[0]
 
+    name_a = _short_name(rows_a[0].get("model_source", "model_A")) if rows_a else "model_A"
+    name_b = _short_name(rows_b[0].get("model_source", "model_B")) if rows_b else "model_B"
+    name_c = _short_name(rows_c[0].get("model_source", name_a)) if rows_c else name_a
+
     x_labels = [r["document_date"]["start"] for r in rows_a]
     x = list(range(1, len(rows_a) + 1))
 
-    COLOR_A = "#2563eb"   # blu       — FP8 + gold history
-    COLOR_B = "#f97316"   # arancio   — 2507 + self history
-    COLOR_C = "#16a34a"   # verde     — FP8 + self history
+    COLOR_A = "#2563eb"   # blu
+    COLOR_B = "#f97316"   # arancio
+    COLOR_C = "#16a34a"   # verde
     MARKER = "o"
     LW = 2.2
     MS = 7
@@ -75,9 +90,9 @@ def plot(patient_id: str, output_dir: Path, save_path: Path | None = None) -> No
         sb = [r[score_key] for r in rows_b]
 
         ax.plot(x, sa, color=COLOR_A, marker=MARKER, linewidth=LW, markersize=MS,
-                label="A — FP8 + gold history")
+                label=f"A — {name_a} + gold history")
         ax.plot(x, sb, color=COLOR_B, marker=MARKER, linewidth=LW, markersize=MS,
-                label="B — 2507 + self history", linestyle="--")
+                label=f"B — {name_b} + self history", linestyle="--")
 
         offsets = {"a": 8, "b": -14, "c": -28}
 
@@ -90,7 +105,7 @@ def plot(patient_id: str, output_dir: Path, save_path: Path | None = None) -> No
         if has_c:
             sc = [r[score_key] for r in rows_c]
             ax.plot(x, sc, color=COLOR_C, marker=MARKER, linewidth=LW, markersize=MS,
-                    label="C — FP8 + self history", linestyle=":")
+                    label=f"C — {name_c} + self history", linestyle=":")
             for xi, yc in zip(x, sc):
                 ax.annotate(f"{yc:.2f}", (xi, yc), textcoords="offset points",
                             xytext=(0, offsets["c"]), ha="center", fontsize=8.5, color=COLOR_C)
@@ -129,11 +144,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plotta score_final e score_delta per Scenario A/B/C.")
     parser.add_argument("--patient-id", default="10000032")
     parser.add_argument("--output-dir", default="outputs/summarization/scenario_comparison")
+    parser.add_argument("--model", default=None,
+                        help="Nome modello usato in generate_scenario_jsons.py. "
+                             "Se omesso, cerca in <output-dir>/<patient-id>/ (compatibilità vecchi run).")
     parser.add_argument("--save-path", default=None)
     args = parser.parse_args()
 
     plot(
         patient_id=args.patient_id,
         output_dir=Path(args.output_dir),
+        model=args.model,
         save_path=Path(args.save_path) if args.save_path else None,
     )

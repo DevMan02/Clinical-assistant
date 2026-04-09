@@ -104,6 +104,14 @@ def _section_scores_from_json(row: dict, mode: str) -> dict[str, float]:
     return {s: agg["sections"][s]["section_score"] for s in SECTIONS if s in agg.get("sections", {})}
 
 
+def _model_slug(model: str) -> str:
+    return model.replace("/", "-").replace(".", "-")
+
+
+def _short_name(model_source: str) -> str:
+    return model_source.split("/")[-1]
+
+
 def _load_rows(scenario_dir: Path) -> tuple[list[dict], list[dict]]:
     rows_a = sorted(scenario_dir.glob("doc_*_scenario_a.json"), key=lambda p: p.name)
     rows_b = sorted(scenario_dir.glob("doc_*_scenario_b.json"), key=lambda p: p.name)
@@ -113,11 +121,17 @@ def _load_rows(scenario_dir: Path) -> tuple[list[dict], list[dict]]:
     )
 
 
-def plot(patient_id: str, output_dir: Path, mode: str = "final", save_path: Path | None = None) -> None:
-    scenario_dir = output_dir / patient_id
+def plot(patient_id: str, output_dir: Path, model: str | None = None, mode: str = "final", save_path: Path | None = None) -> None:
+    if model:
+        scenario_dir = output_dir / _model_slug(model) / patient_id
+    else:
+        scenario_dir = output_dir / patient_id
     rows_a, rows_b = _load_rows(scenario_dir)
     if not rows_a:
         raise FileNotFoundError(f"Nessun file JSON in {scenario_dir}")
+
+    name_a = _short_name(rows_a[0].get("model_source", "A")) if rows_a else "A"
+    name_b = _short_name(rows_b[0].get("model_source", "B")) if rows_b else "B"
 
     n_docs = len(rows_a)
     scores_a = [_section_scores_from_json(r, mode) for r in rows_a]
@@ -134,7 +148,8 @@ def plot(patient_id: str, output_dir: Path, mode: str = "final", save_path: Path
 
     fig, axes = plt.subplots(1, n_docs + 1, figsize=(4 * (n_docs + 1), 5), sharey=True)
     fig.suptitle(
-        f"Paziente {patient_id} — Section scores ({mode})\nScenario A (gold history) vs B (self history)",
+        f"Paziente {patient_id} — Section scores ({mode})\n"
+        f"A ({name_a} + gold history) vs B ({name_b} + self history)",
         fontsize=12, fontweight="bold",
     )
 
@@ -185,7 +200,7 @@ def plot(patient_id: str, output_dir: Path, mode: str = "final", save_path: Path
     ax_gain.axvline(0, color="black", linewidth=0.8)
     ax_gain.set_yticks(np.arange(n_sec))
     ax_gain.set_yticklabels(sec_labels, fontsize=8)
-    ax_gain.set_xlabel("Gain medio A − B", fontsize=9)
+    ax_gain.set_xlabel(f"Gain medio A − B  ({name_a} vs {name_b})", fontsize=9)
     ax_gain.set_title("Gain\n(A − B, media docs)", fontsize=9)
     ax_gain.grid(axis="x", linestyle=":", alpha=0.4)
 
@@ -203,6 +218,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Section scores A vs B per documento.")
     parser.add_argument("--patient-id", default="10000032")
     parser.add_argument("--output-dir", default="outputs/summarization/scenario_comparison")
+    parser.add_argument("--model", default=None,
+                        help="Nome modello usato in generate_scenario_jsons.py. "
+                             "Se omesso, cerca in <output-dir>/<patient-id>/ (compatibilità vecchi run).")
     parser.add_argument("--score", default="final", choices=["final", "delta"],
                         help="'final'=accumulated score, 'delta'=estrazione pura")
     parser.add_argument("--save-path", default=None)
@@ -211,6 +229,7 @@ if __name__ == "__main__":
     plot(
         patient_id=args.patient_id,
         output_dir=Path(args.output_dir),
+        model=args.model,
         mode=args.score,
         save_path=Path(args.save_path) if args.save_path else None,
     )

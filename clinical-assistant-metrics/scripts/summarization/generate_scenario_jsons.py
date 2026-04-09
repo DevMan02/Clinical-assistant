@@ -1,33 +1,31 @@
 """
 generate_scenario_jsons.py
 
-Genera 12 file JSON di confronto (4 documenti × 3 scenari) per il paziente target.
+Genera N×3 file JSON di confronto (N documenti × 3 scenari) per il paziente target.
+Gli output vengono salvati in: <output-dir>/<model-slug>/<patient-id>/
 
 Per ogni documento i il confronto avviene tra il PatientSummary accumulato DOPO
 l'elaborazione di quel documento:
 
   Target (riferimento fisso):
-    gold_summary_after_i = gold_rows[i+1]["summary"]   (per i < 3)
-                         = update(gold_before_i, gold_delta_i)  (per i == 3)
+    gold_summary_after_i = gold_rows[i+1]["summary"]   (per i < N-1)
+                         = update(gold_before_i, gold_delta_i)  (per l'ultimo doc)
     È il summary accumulato da Claude dopo il documento i.
 
-  Scenario A — FP8 con storia gold (inferenza live):
-    FP8 riceve il documento + gold_rows[i]["summary"] come contesto.
+  Scenario A — modello con storia gold (inferenza live):
+    Il modello riceve il documento + gold_rows[i]["summary"] come contesto.
     Produce delta_A. accumulated_A = update(gold_before_i, delta_A).
     Score = similarità(accumulated_A, target).
 
-  Scenario B — Qwen 2507 con storia auto-predetta (dal JSONL, zero inferenza):
-    qwen_summary_after_i = qwen_rows[i+1]["summary"]   (per i < 3)
-                         = update(qwen_before_i, qwen_delta_i)  (per i == 3)
-    È già nel file Qwen JSONL — la storia accumulata da 2507 usando la propria
-    storia come contesto ad ogni passo.
-    Score = similarità(qwen_summary_after_i, target).
+  Scenario B — modello di riferimento con storia auto-predetta (dal JSONL, zero inferenza):
+    È già nel file --qwen-path JSONL — la storia accumulata dal modello di riferimento
+    usando la propria storia come contesto ad ogni passo.
+    Score = similarità(ref_summary_after_i, target).
 
-  Scenario C — FP8 con storia auto-predetta (inferenza live iterativa):
-    FP8 riceve il documento + la propria storia accumulata fino al passo i-1.
-    Replica la struttura di dataset.py ma con FP8 invece di 2507.
+  Scenario C — modello con storia auto-predetta (inferenza live iterativa):
+    Il modello riceve il documento + la propria storia accumulata fino al passo i-1.
     Confronto C vs B = effetto modello puro (stessa self-history, modelli diversi).
-    Confronto A vs C = effetto contesto puro (stesso modello FP8, storia diversa).
+    Confronto A vs C = effetto contesto puro (stesso modello, storia diversa).
 
 Score calcolati per ogni scenario:
   score_final  — similarità tra accumulated_prediction e accumulated_target
@@ -36,14 +34,23 @@ Score calcolati per ogni scenario:
                  PatientSummary con storia vuota (estrazione pura, senza rumore storia)
 
 Provider supportati (per Scenario A e C):
-Provider:
   vLLM — OpenAIClient con Responses API + constrained decoding.
-  Avvia: vllm serve Qwen/Qwen3-4B-Instruct-2507-FP8 --max-model-len 32768
 
-Esecuzione:
+Esecuzione (esempio con Qwen FP8):
+  vllm serve Qwen/Qwen3-4B-Instruct-2507-FP8 --max-model-len 32768
   cd clinical-assistant-metrics
   PYTHONPATH=src uv run python scripts/summarization/generate_scenario_jsons.py \\
-    --model Qwen/Qwen3-4B-Instruct-2507-FP8"""
+    --model Qwen/Qwen3-4B-Instruct-2507-FP8
+
+Esecuzione (esempio con Gemma 4 GGUF):
+  vllm serve unsloth/gemma-4-E4B-it-GGUF \\
+    --gguf-file gemma-4-E4B-it-UD-Q4_K_XL.gguf \\
+    --tokenizer google/gemma-4-E4B-it \\
+    --served-model-name gemma-4-E4B-it-UD-Q4_K_XL.gguf \\
+    --max-model-len 32768
+  PYTHONPATH=src uv run python scripts/summarization/generate_scenario_jsons.py \\
+    --model gemma-4-E4B-it-UD-Q4_K_XL.gguf \\
+    --max-doc-chars 16000 --max-tokens 8192"""
 
 import argparse
 import asyncio
@@ -71,7 +78,7 @@ from clinical_assistant.summarization.measurements import MeasurementEventOutput
 from clinical_assistant.summarization.medications import MedicationHistoryOutputFormat
 from clinical_assistant.summarization.patient import PatientSummary, PatientSummaryDelta, PatientSummaryExtractor
 from clinical_assistant.summarization.procedures import ProcedureOutputFormat
-from clinical_assistant.summarization.structured_output import OpenAIClient
+from clinical_assistant.summarization.structured_output import LlamaCppClient, OpenAIClient
 from clinical_assistant.summarization.substances import SubstanceUseOutputFormat
 
 
@@ -292,12 +299,18 @@ async def main() -> None:
         help="Tronca il contenuto del documento a N caratteri prima di passarlo agli estrattori "
              "(0 = nessun troncamento). ~4 chars/token: usa 16000 per ~4000 token di documento.",
     )
+    parser.add_argument(
+        "--provider", default="vllm", choices=["vllm", "llamacpp"],
+        help="Provider del server LLM: 'vllm' usa la Responses API (default), "
+             "'llamacpp' usa la Chat Completions API (per llama-server con GGUF).",
+    )
     args = parser.parse_args()
 
     gold_path = Path(args.gold_path)
     qwen_path = Path(args.qwen_path)
     patient_id = args.patient_id
-    output_dir = Path(args.output_dir) / patient_id
+    model_slug = args.model.replace("/", "-").replace(".", "-")
+    output_dir = Path(args.output_dir) / model_slug / patient_id
 
     gold_rows = _load_rows_by_patient(gold_path, patient_id)
     qwen_rows = _load_rows_by_patient(qwen_path, patient_id)
@@ -309,13 +322,13 @@ async def main() -> None:
         raise ValueError(f"Nessuna riga trovata per il paziente {patient_id} in {qwen_path}")
 
     print(f"Paziente {patient_id}: {len(gold_rows)} documenti.")
-    print(f"Model: {args.model}  |  URL: {args.base_url}\n")
+    print(f"Model: {args.model}  |  Provider: {args.provider}  |  URL: {args.base_url}\n")
 
-    llm_client = OpenAIClient(
-        AsyncOpenAI(api_key="EMPTY", base_url=args.base_url),
-        model=args.model,
-        max_output_tokens=args.max_tokens,
-    )
+    _openai = AsyncOpenAI(api_key="EMPTY", base_url=args.base_url)
+    if args.provider == "llamacpp":
+        llm_client = LlamaCppClient(_openai, model=args.model, max_output_tokens=args.max_tokens)
+    else:
+        llm_client = OpenAIClient(_openai, model=args.model, max_output_tokens=args.max_tokens)
 
     qwen_extractor = PatientSummaryExtractor(llm_client)
     noop_extractor = PatientSummaryExtractor(_NoopClient())
@@ -386,7 +399,7 @@ async def main() -> None:
         # Scenario A: Qwen riceve il documento + storia gold come contesto.
         # Inferenza live — produce delta_A, poi accumulated_A = update().
         # ----------------------------------------------------------------
-        print("  [A] Estrazione con storia gold (inferenza live)...")
+        print(f"  [A] Estrazione con {args.model} e storia gold (inferenza live)...")
         delta_a = await _extract_with_retry(qwen_extractor, document, gold_summary_before, client=llm_client)
         accumulated_a = noop_extractor.update(gold_summary_before, delta_a)
         delta_a_as_summary = noop_extractor.update(empty_summary, delta_a)
@@ -400,7 +413,7 @@ async def main() -> None:
         # fp8_accumulated viene aggiornato ad ogni documento e riusato al prossimo.
         # Confronto C vs B = effetto modello puro (stessa self-history, modelli diversi).
         # ----------------------------------------------------------------
-        print("  [C] Estrazione FP8 con storia self-predetta (inferenza live)...")
+        print(f"  [C] Estrazione con {args.model} storia self-predetta (inferenza live)...")
         fp8_before = fp8_accumulated  # salva lo stato PRIMA dell'update
         delta_c = await _extract_with_retry(qwen_extractor, document, fp8_before, client=llm_client)
         fp8_accumulated = noop_extractor.update(fp8_before, delta_c)
@@ -429,7 +442,7 @@ async def main() -> None:
             **base,
             "scenario": "A",
             "description": (
-                "Qwen ha ricevuto il documento + storia gold (Claude) come contesto. "
+                f"{args.model} ha ricevuto il documento + storia gold (Claude) come contesto. "
                 "Inferenza live. Score = similarità tra accumulated_A e il target gold."
             ),
             "history_source": "gold_claude",
@@ -461,10 +474,10 @@ async def main() -> None:
             **base,
             "scenario": "C",
             "description": (
-                "FP8 ha usato la propria storia auto-predetta come contesto (inferenza live iterativa). "
-                "Confronto C vs B = effetto modello puro (FP8 vs 2507, stessa self-history)."
+                f"{args.model} ha usato la propria storia auto-predetta come contesto (inferenza live iterativa). "
+                "Confronto C vs B = effetto modello puro (stesso tipo self-history, modelli diversi)."
             ),
-            "history_source": "self_predicted_fp8",
+            "history_source": f"self_predicted_{model_slug}",
             "model_source": args.model,
             "previous_history": fp8_before.model_dump(),
             "predicted_delta": delta_c.model_dump(),
@@ -479,6 +492,7 @@ async def main() -> None:
         print(f"  Salvati: doc_{idx:02d}_scenario_a/b/c.json\n")
 
     print(f"Completato. {len(gold_rows) * 3} file JSON salvati in: {output_dir}")
+    print(f"Model: {args.model}  |  Output slug: {model_slug}")
 
 
 if __name__ == "__main__":
