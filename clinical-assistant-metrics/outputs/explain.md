@@ -20,7 +20,7 @@ accumulated_target = il summary che Claude ha costruito accumulando tutti i docu
 
 accumulated_prediction = il summary che Qwen produce per lo stesso punto temporale. È ciò che confrontiamo col target.
 
-Sì, esattamente. Il predicted_delta viene calcolato così:
+Il predicted_delta viene calcolato così:
 
 
 delta_a = await extract(document, gold_summary_before)

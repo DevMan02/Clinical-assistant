@@ -1,0 +1,2117 @@
+{
+  "patient_id": "10000117",
+  "document_id": "22927623",
+  "document_index": 1,
+  "document_date": {
+    "start": "2181-11-15",
+    "end": "2181-11-15"
+  },
+  "document": {
+    "content": " \nName:  ___                 Unit No:   ___\n \nAdmission Date:  ___              Discharge Date:   ___\n \nDate of Birth:  ___             Sex:   F\n \nService: MEDICINE\n \nAllergies: \nomeprazole\n \nAttending: ___.\n \nChief Complaint:\ndysphagia \n \nMajor Surgical or Invasive Procedure:\nUpper endoscopy ___\n\n \nHistory of Present Illness:\n ___ w/ anxiety and several years of dysphagia who p/w worsened \nforeign body sensation. \n\nShe describes feeling as though food gets stuck in her neck when \nshe eats. She put herself on a pureed diet to address this over \nthe last 10 days. When she has food stuck in the throat, she \nalmost feels as though she cannot breath, but she denies trouble \nbreathing at any other time. She does not have any history of \nfood allergies or skin rashes. \n \nIn the ED, initial vitals:  97.6  81  148/83  16  100% RA \nImaging showed: CXR showed a prominent esophagus\nConsults: GI was consulted.\n\nPt underwent EGD which showed a normal appearing esophagus. \nBiopsies were taken.\n\nCurrently, she endorses anxiety about eating. She would like to \ntry eating here prior to leaving the hospital. \n\n \nPast Medical History:\n- GERD  \n - Hypercholesterolemia  \n - Kidney stones  \n - Mitral valve prolapse  \n - Uterine fibroids  \n - Osteoporosis  \n - Migraine headaches \n \nSocial History:\n___\nFamily History:\n+ HTN - father  \n+ Dementia - father  \n \n \nPhysical Exam:\n=================\nADMISSION/DISCHARGE EXAM\n=================\nVS:  97.9  PO 109 / 71 70 16 97 ra \nGEN: Thin anxious woman, lying in bed, no acute distress  \nHEENT: Moist MM, anicteric sclerae, NCAT, PERRL, EOMI  \nNECK: Supple without LAD, no JVD  \nPULM: CTABL no w/c/r\nCOR: RRR (+)S1/S2 no m/r/g  \nABD: Soft, non-tender, non-distended, +BS, no HSM  \nEXTREM: Warm, well-perfused, no ___ edema  \nNEURO: CN II-XII grossly intact, motor function grossly normal, \nsensation grossly intact  \n \nPertinent Results:\n=============\nADMISSION LABS\n=============\n\n___ 08:27AM BLOOD WBC-5.0 RBC-4.82 Hgb-14.9 Hct-44.4 MCV-92 \nMCH-30.9 MCHC-33.6 RDW-12.1 RDWSD-41.3 Plt ___\n___ 08:27AM BLOOD ___ PTT-28.6 ___\n___ 08:27AM BLOOD Glucose-85 UreaN-8 Creat-0.9 Na-142 K-3.6 \nCl-104 HCO3-22 AnGap-20\n___ 08:27AM BLOOD ALT-11 AST-16 LD(LDH)-154 AlkPhos-63 \nTotBili-1.0\n___ 08:27AM BLOOD Albumin-4.8\n=============\nIMAGING\n=============\n\nCXR ___: \nIMPRESSION:  \n  \nProminent esophagus on lateral view, without air-fluid level. \nGiven the patient's history and radiographic appearance, barium \nswallow is indicated either now or electively. \n  \nNECK X-ray ___:\nIMPRESSION:  \n  \nWithin the limitation of plain radiography, no evidence of \nprevertebral soft tissue swelling or soft tissue mass in the \nneck. \n \n\nEGD: ___\n Impression: Hiatal hernia\nAngioectasia in the stomach\nAngioectasia in the duodenum\n (biopsy, biopsy)\nOtherwise normal EGD to third part of the duodenum \n\nRecommendations: - no obvious anatomic cause for the patient's \nsymptoms\n- follow-up biopsy results to rule out eosinophilic esophagitis\n- follow-up with Dr. ___ if biopsies show eosinophilic \nesophagitis \n\n \nBrief Hospital Course:\nMs. ___ is a ___ with history of GERD who presents with \nsubacute worsening of dysphagia and foreign body sensation. This \nhad worsened to the point where she placed herself on a pureed \ndiet for the last 10 days. She underwent CXR which showed a \nprominent esophagus but was otherwise normal. She was evaluated \nby Gastroenterology and underwent an upper endoscopy on ___. \nThis showed a normal appearing esophagus. Biopsies were taken. \n\nTRANSITIONAL ISSUES:\n-f/u biopsies from EGD\n-if results show eosinophilic esophagitis, follow-up with Dr. ___. \n___ for management\n-pt should undergo barium swallow as an outpatient for further \nworkup of her dysphagia\n-f/u with ENT as planned\n#Code: Full (presumed) \n \nMedications on Admission:\nThe Preadmission Medication list is accurate and complete.\n1. Omeprazole 20 mg PO BID \n\n \nDischarge Medications:\n1.  Omeprazole 20 mg PO BID  \n\n \nDischarge Disposition:\nHome\n \nDischarge Diagnosis:\nPRIMARY DIAGNOSIS:\n-dysphagia and foreign body sensation\n\nSECONDARY DIAGNOSIS:\n-GERD \n\n \nDischarge Condition:\nMental Status: Clear and coherent.\nLevel of Consciousness: Alert and interactive.\nActivity Status: Ambulatory - Independent.\n\n \nDischarge Instructions:\nDear Ms. ___,\n\nYou were hospitalized at ___.\n\nYou came in due to difficulty swallowing. You had an endoscopy \nto look for any abnormalities in the esophagus. Thankfully, this \nwas normal. They took biopsies, and you will be called with the \nresults. You should have a test called a barium swallow as an \noutpatient.\n\nWe wish you all the best!\n-Your ___ Team \n \nFollowup Instructions:\n___\n",
+    "meta": {
+      "id": "22927623",
+      "type": "Inpatient",
+      "start_date": "2181-11-15",
+      "end_date": "2181-11-15"
+    }
+  },
+  "target_delta": {
+    "meta": {
+      "id": "22927623",
+      "type": "Inpatient",
+      "start_date": "2181-11-15",
+      "end_date": "2181-11-15"
+    },
+    "allergies": {
+      "allergies": [
+        {
+          "allergen": "omeprazole",
+          "category": "drug",
+          "severity": null,
+          "reaction": null
+        }
+      ]
+    },
+    "substances": {
+      "substances": []
+    },
+    "family_history": {
+      "family_history": [
+        {
+          "relationship": "Father",
+          "condition": "hypertension",
+          "status": "present",
+          "detail": null
+        },
+        {
+          "relationship": "Father",
+          "condition": "dementia",
+          "status": "present",
+          "detail": null
+        }
+      ]
+    },
+    "clinical_problems": {
+      "problems": [
+        {
+          "name": "dysphagia",
+          "category": "gastrointestinal",
+          "status": "active",
+          "detail": "several years of dysphagia with foreign body sensation; worsened to pureed diet x10 days; EGD normal; biopsies taken to rule out eosinophilic esophagitis; barium swallow and ENT follow-up pending",
+          "new_info": true
+        },
+        {
+          "name": "GERD",
+          "category": "gastrointestinal",
+          "status": "chronic",
+          "detail": "on omeprazole 20mg BID; allergy to omeprazole listed but still prescribed",
+          "new_info": true
+        },
+        {
+          "name": "hiatal hernia",
+          "category": "gastrointestinal",
+          "status": "unknown",
+          "detail": "found on EGD this admission",
+          "new_info": true
+        },
+        {
+          "name": "angioectasia",
+          "category": "gastrointestinal",
+          "status": "unknown",
+          "detail": "found in stomach and duodenum on EGD; biopsied",
+          "new_info": true
+        },
+        {
+          "name": "hypercholesterolemia",
+          "category": "endocrine_metabolic",
+          "status": "chronic",
+          "detail": null,
+          "new_info": false
+        },
+        {
+          "name": "kidney stones",
+          "category": "renal",
+          "status": "chronic",
+          "detail": null,
+          "new_info": false
+        },
+        {
+          "name": "mitral valve prolapse",
+          "category": "cardiovascular",
+          "status": "chronic",
+          "detail": null,
+          "new_info": false
+        },
+        {
+          "name": "uterine fibroids",
+          "category": "other",
+          "status": "chronic",
+          "detail": null,
+          "new_info": false
+        },
+        {
+          "name": "osteoporosis",
+          "category": "musculoskeletal",
+          "status": "chronic",
+          "detail": null,
+          "new_info": false
+        },
+        {
+          "name": "migraine headaches",
+          "category": "neurological_psychiatric",
+          "status": "chronic",
+          "detail": null,
+          "new_info": false
+        },
+        {
+          "name": "anxiety",
+          "category": "neurological_psychiatric",
+          "status": "chronic",
+          "detail": "anxiety about eating noted this admission",
+          "new_info": true
+        }
+      ]
+    },
+    "procedures": {
+      "procedures": [
+        {
+          "name": "chest X-ray",
+          "category": "diagnostic",
+          "significance": "minor",
+          "detail": "prominent esophagus on lateral view; no air-fluid level; barium swallow recommended"
+        },
+        {
+          "name": "neck X-ray",
+          "category": "diagnostic",
+          "significance": "minor",
+          "detail": "no prevertebral soft tissue swelling or soft tissue mass"
+        },
+        {
+          "name": "upper endoscopy (EGD)",
+          "category": "diagnostic",
+          "significance": "major",
+          "detail": "normal appearing esophagus; hiatal hernia; angioectasia in stomach and duodenum; biopsies taken; no obvious anatomic cause for dysphagia"
+        },
+        {
+          "name": "blood draw",
+          "category": "diagnostic",
+          "significance": "minor",
+          "detail": "CBC, BMP, LFTs, coagulation panel"
+        },
+        {
+          "name": "barium swallow",
+          "category": "diagnostic",
+          "significance": "minor",
+          "detail": "recommended as outpatient for further workup of dysphagia; not yet performed"
+        }
+      ]
+    },
+    "medications": {
+      "events": [
+        {
+          "medication_name": "omeprazole",
+          "dosage": "20 mg PO BID",
+          "reason": "GERD",
+          "category": "Gastrointestinal",
+          "status": "continued",
+          "detail": "Allergy to omeprazole listed, but continued on preadmission list and at discharge without documented reaction or change"
+        }
+      ]
+    },
+    "measurements": {
+      "measurements": [
+        {
+          "name": "temperature",
+          "category": "Vital Signs",
+          "value": 97.6,
+          "unit": "F",
+          "flag": null
+        },
+        {
+          "name": "heart rate",
+          "category": "Vital Signs",
+          "value": 81.0,
+          "unit": "bpm",
+          "flag": null
+        },
+        {
+          "name": "blood pressure systolic",
+          "category": "Vital Signs",
+          "value": 148.0,
+          "unit": "mmHg",
+          "flag": null
+        },
+        {
+          "name": "blood pressure diastolic",
+          "category": "Vital Signs",
+          "value": 83.0,
+          "unit": "mmHg",
+          "flag": null
+        },
+        {
+          "name": "respiratory rate",
+          "category": "Vital Signs",
+          "value": 16.0,
+          "unit": "breaths/min",
+          "flag": null
+        },
+        {
+          "name": "oxygen saturation",
+          "category": "Vital Signs",
+          "value": 100.0,
+          "unit": "%",
+          "flag": null
+        },
+        {
+          "name": "temperature",
+          "category": "Vital Signs",
+          "value": 97.9,
+          "unit": "F",
+          "flag": null
+        },
+        {
+          "name": "blood pressure systolic",
+          "category": "Vital Signs",
+          "value": 109.0,
+          "unit": "mmHg",
+          "flag": null
+        },
+        {
+          "name": "blood pressure diastolic",
+          "category": "Vital Signs",
+          "value": 71.0,
+          "unit": "mmHg",
+          "flag": null
+        },
+        {
+          "name": "heart rate",
+          "category": "Vital Signs",
+          "value": 70.0,
+          "unit": "bpm",
+          "flag": null
+        },
+        {
+          "name": "respiratory rate",
+          "category": "Vital Signs",
+          "value": 16.0,
+          "unit": "breaths/min",
+          "flag": null
+        },
+        {
+          "name": "oxygen saturation",
+          "category": "Vital Signs",
+          "value": 97.0,
+          "unit": "%",
+          "flag": null
+        },
+        {
+          "name": "white blood cells",
+          "category": "Blood",
+          "value": 5.0,
+          "unit": "K/uL",
+          "flag": null
+        },
+        {
+          "name": "red blood cells",
+          "category": "Blood",
+          "value": 4.82,
+          "unit": "M/uL",
+          "flag": null
+        },
+        {
+          "name": "hemoglobin",
+          "category": "Blood",
+          "value": 14.9,
+          "unit": "g/dL",
+          "flag": null
+        },
+        {
+          "name": "hematocrit",
+          "category": "Blood",
+          "value": 44.4,
+          "unit": "%",
+          "flag": null
+        },
+        {
+          "name": "MCV",
+          "category": "Blood",
+          "value": 92.0,
+          "unit": "fL",
+          "flag": null
+        },
+        {
+          "name": "MCH",
+          "category": "Blood",
+          "value": 30.9,
+          "unit": "pg",
+          "flag": null
+        },
+        {
+          "name": "MCHC",
+          "category": "Blood",
+          "value": 33.6,
+          "unit": "g/dL",
+          "flag": null
+        },
+        {
+          "name": "RDW",
+          "category": "Blood",
+          "value": 12.1,
+          "unit": "%",
+          "flag": null
+        },
+        {
+          "name": "RDWSD",
+          "category": "Blood",
+          "value": 41.3,
+          "unit": "fL",
+          "flag": null
+        },
+        {
+          "name": "PTT",
+          "category": "Blood",
+          "value": 28.6,
+          "unit": "sec",
+          "flag": null
+        },
+        {
+          "name": "glucose",
+          "category": "Blood",
+          "value": 85.0,
+          "unit": "mg/dL",
+          "flag": null
+        },
+        {
+          "name": "blood urea nitrogen",
+          "category": "Blood",
+          "value": 8.0,
+          "unit": "mg/dL",
+          "flag": null
+        },
+        {
+          "name": "creatinine",
+          "category": "Blood",
+          "value": 0.9,
+          "unit": "mg/dL",
+          "flag": null
+        },
+        {
+          "name": "sodium",
+          "category": "Blood",
+          "value": 142.0,
+          "unit": "mEq/L",
+          "flag": null
+        },
+        {
+          "name": "potassium",
+          "category": "Blood",
+          "value": 3.6,
+          "unit": "mEq/L",
+          "flag": null
+        },
+        {
+          "name": "chloride",
+          "category": "Blood",
+          "value": 104.0,
+          "unit": "mEq/L",
+          "flag": null
+        },
+        {
+          "name": "bicarbonate",
+          "category": "Blood",
+          "value": 22.0,
+          "unit": "mEq/L",
+          "flag": null
+        },
+        {
+          "name": "anion gap",
+          "category": "Blood",
+          "value": 20.0,
+          "unit": "mEq/L",
+          "flag": null
+        },
+        {
+          "name": "ALT",
+          "category": "Blood",
+          "value": 11.0,
+          "unit": "U/L",
+          "flag": null
+        },
+        {
+          "name": "AST",
+          "category": "Blood",
+          "value": 16.0,
+          "unit": "U/L",
+          "flag": null
+        },
+        {
+          "name": "LDH",
+          "category": "Blood",
+          "value": 154.0,
+          "unit": "U/L",
+          "flag": null
+        },
+        {
+          "name": "alkaline phosphatase",
+          "category": "Blood",
+          "value": 63.0,
+          "unit": "U/L",
+          "flag": null
+        },
+        {
+          "name": "total bilirubin",
+          "category": "Blood",
+          "value": 1.0,
+          "unit": "mg/dL",
+          "flag": null
+        },
+        {
+          "name": "albumin",
+          "category": "Blood",
+          "value": 4.8,
+          "unit": "g/dL",
+          "flag": null
+        }
+      ]
+    }
+  },
+  "accumulated_target": {
+    "patient_id": "10000117",
+    "document_ids": [
+      "22927623"
+    ],
+    "sex": "female",
+    "age": 48,
+    "allergies": [
+      {
+        "allergen": "omeprazole",
+        "category": "drug",
+        "severity": null,
+        "reaction": null
+      }
+    ],
+    "substances": [],
+    "family_history": [
+      {
+        "relationship": "Father",
+        "condition": "hypertension",
+        "status": "present",
+        "detail": null
+      },
+      {
+        "relationship": "Father",
+        "condition": "dementia",
+        "status": "present",
+        "detail": null
+      }
+    ],
+    "clinical_problems": [
+      {
+        "name": "dysphagia",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "dysphagia",
+              "category": "gastrointestinal",
+              "status": "active",
+              "detail": "several years of dysphagia with foreign body sensation; worsened to pureed diet x10 days; EGD normal; biopsies taken to rule out eosinophilic esophagitis; barium swallow and ENT follow-up pending",
+              "new_info": true
+            }
+          ]
+        ]
+      },
+      {
+        "name": "GERD",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "GERD",
+              "category": "gastrointestinal",
+              "status": "chronic",
+              "detail": "on omeprazole 20mg BID; allergy to omeprazole listed but still prescribed",
+              "new_info": true
+            }
+          ]
+        ]
+      },
+      {
+        "name": "hiatal hernia",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "hiatal hernia",
+              "category": "gastrointestinal",
+              "status": "unknown",
+              "detail": "found on EGD this admission",
+              "new_info": true
+            }
+          ]
+        ]
+      },
+      {
+        "name": "angioectasia",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "angioectasia",
+              "category": "gastrointestinal",
+              "status": "unknown",
+              "detail": "found in stomach and duodenum on EGD; biopsied",
+              "new_info": true
+            }
+          ]
+        ]
+      },
+      {
+        "name": "hypercholesterolemia",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "hypercholesterolemia",
+              "category": "endocrine_metabolic",
+              "status": "chronic",
+              "detail": null,
+              "new_info": false
+            }
+          ]
+        ]
+      },
+      {
+        "name": "kidney stones",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "kidney stones",
+              "category": "renal",
+              "status": "chronic",
+              "detail": null,
+              "new_info": false
+            }
+          ]
+        ]
+      },
+      {
+        "name": "mitral valve prolapse",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "mitral valve prolapse",
+              "category": "cardiovascular",
+              "status": "chronic",
+              "detail": null,
+              "new_info": false
+            }
+          ]
+        ]
+      },
+      {
+        "name": "uterine fibroids",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "uterine fibroids",
+              "category": "other",
+              "status": "chronic",
+              "detail": null,
+              "new_info": false
+            }
+          ]
+        ]
+      },
+      {
+        "name": "osteoporosis",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "osteoporosis",
+              "category": "musculoskeletal",
+              "status": "chronic",
+              "detail": null,
+              "new_info": false
+            }
+          ]
+        ]
+      },
+      {
+        "name": "migraine headaches",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "migraine headaches",
+              "category": "neurological_psychiatric",
+              "status": "chronic",
+              "detail": null,
+              "new_info": false
+            }
+          ]
+        ]
+      },
+      {
+        "name": "anxiety",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "anxiety",
+              "category": "neurological_psychiatric",
+              "status": "chronic",
+              "detail": "anxiety about eating noted this admission",
+              "new_info": true
+            }
+          ]
+        ]
+      }
+    ],
+    "procedures": [
+      {
+        "encounter": {
+          "id": "22927623",
+          "type": "Inpatient",
+          "start_date": "2181-11-15",
+          "end_date": "2181-11-15"
+        },
+        "procedures": [
+          {
+            "name": "chest X-ray",
+            "category": "diagnostic",
+            "significance": "minor",
+            "detail": "prominent esophagus on lateral view; no air-fluid level; barium swallow recommended"
+          },
+          {
+            "name": "neck X-ray",
+            "category": "diagnostic",
+            "significance": "minor",
+            "detail": "no prevertebral soft tissue swelling or soft tissue mass"
+          },
+          {
+            "name": "upper endoscopy (EGD)",
+            "category": "diagnostic",
+            "significance": "major",
+            "detail": "normal appearing esophagus; hiatal hernia; angioectasia in stomach and duodenum; biopsies taken; no obvious anatomic cause for dysphagia"
+          },
+          {
+            "name": "blood draw",
+            "category": "diagnostic",
+            "significance": "minor",
+            "detail": "CBC, BMP, LFTs, coagulation panel"
+          },
+          {
+            "name": "barium swallow",
+            "category": "diagnostic",
+            "significance": "minor",
+            "detail": "recommended as outpatient for further workup of dysphagia; not yet performed"
+          }
+        ]
+      }
+    ],
+    "medications": [
+      {
+        "name": "omeprazole",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "medication_name": "omeprazole",
+              "dosage": "20 mg PO BID",
+              "reason": "GERD",
+              "category": "Gastrointestinal",
+              "status": "continued",
+              "detail": "Allergy to omeprazole listed, but continued on preadmission list and at discharge without documented reaction or change"
+            }
+          ]
+        ]
+      }
+    ],
+    "measurements": [
+      {
+        "name": "temperature",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "temperature",
+              "category": "Vital Signs",
+              "value": 97.6,
+              "unit": "F",
+              "flag": null
+            }
+          ],
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "temperature",
+              "category": "Vital Signs",
+              "value": 97.9,
+              "unit": "F",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "heart rate",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "heart rate",
+              "category": "Vital Signs",
+              "value": 81.0,
+              "unit": "bpm",
+              "flag": null
+            }
+          ],
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "heart rate",
+              "category": "Vital Signs",
+              "value": 70.0,
+              "unit": "bpm",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "blood pressure systolic",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "blood pressure systolic",
+              "category": "Vital Signs",
+              "value": 148.0,
+              "unit": "mmHg",
+              "flag": null
+            }
+          ],
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "blood pressure systolic",
+              "category": "Vital Signs",
+              "value": 109.0,
+              "unit": "mmHg",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "blood pressure diastolic",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "blood pressure diastolic",
+              "category": "Vital Signs",
+              "value": 83.0,
+              "unit": "mmHg",
+              "flag": null
+            }
+          ],
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "blood pressure diastolic",
+              "category": "Vital Signs",
+              "value": 71.0,
+              "unit": "mmHg",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "respiratory rate",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "respiratory rate",
+              "category": "Vital Signs",
+              "value": 16.0,
+              "unit": "breaths/min",
+              "flag": null
+            }
+          ],
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "respiratory rate",
+              "category": "Vital Signs",
+              "value": 16.0,
+              "unit": "breaths/min",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "oxygen saturation",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "oxygen saturation",
+              "category": "Vital Signs",
+              "value": 100.0,
+              "unit": "%",
+              "flag": null
+            }
+          ],
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "oxygen saturation",
+              "category": "Vital Signs",
+              "value": 97.0,
+              "unit": "%",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "white blood cells",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "white blood cells",
+              "category": "Blood",
+              "value": 5.0,
+              "unit": "K/uL",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "red blood cells",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "red blood cells",
+              "category": "Blood",
+              "value": 4.82,
+              "unit": "M/uL",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "hemoglobin",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "hemoglobin",
+              "category": "Blood",
+              "value": 14.9,
+              "unit": "g/dL",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "hematocrit",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "hematocrit",
+              "category": "Blood",
+              "value": 44.4,
+              "unit": "%",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "MCV",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "MCV",
+              "category": "Blood",
+              "value": 92.0,
+              "unit": "fL",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "MCH",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "MCH",
+              "category": "Blood",
+              "value": 30.9,
+              "unit": "pg",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "MCHC",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "MCHC",
+              "category": "Blood",
+              "value": 33.6,
+              "unit": "g/dL",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "RDW",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "RDW",
+              "category": "Blood",
+              "value": 12.1,
+              "unit": "%",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "RDWSD",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "RDWSD",
+              "category": "Blood",
+              "value": 41.3,
+              "unit": "fL",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "PTT",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "PTT",
+              "category": "Blood",
+              "value": 28.6,
+              "unit": "sec",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "glucose",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "glucose",
+              "category": "Blood",
+              "value": 85.0,
+              "unit": "mg/dL",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "blood urea nitrogen",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "blood urea nitrogen",
+              "category": "Blood",
+              "value": 8.0,
+              "unit": "mg/dL",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "creatinine",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "creatinine",
+              "category": "Blood",
+              "value": 0.9,
+              "unit": "mg/dL",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "sodium",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "sodium",
+              "category": "Blood",
+              "value": 142.0,
+              "unit": "mEq/L",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "potassium",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "potassium",
+              "category": "Blood",
+              "value": 3.6,
+              "unit": "mEq/L",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "chloride",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "chloride",
+              "category": "Blood",
+              "value": 104.0,
+              "unit": "mEq/L",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "bicarbonate",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "bicarbonate",
+              "category": "Blood",
+              "value": 22.0,
+              "unit": "mEq/L",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "anion gap",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "anion gap",
+              "category": "Blood",
+              "value": 20.0,
+              "unit": "mEq/L",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "ALT",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "ALT",
+              "category": "Blood",
+              "value": 11.0,
+              "unit": "U/L",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "AST",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "AST",
+              "category": "Blood",
+              "value": 16.0,
+              "unit": "U/L",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "LDH",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "LDH",
+              "category": "Blood",
+              "value": 154.0,
+              "unit": "U/L",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "alkaline phosphatase",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "alkaline phosphatase",
+              "category": "Blood",
+              "value": 63.0,
+              "unit": "U/L",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "total bilirubin",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "total bilirubin",
+              "category": "Blood",
+              "value": 1.0,
+              "unit": "mg/dL",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "albumin",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "albumin",
+              "category": "Blood",
+              "value": 4.8,
+              "unit": "g/dL",
+              "flag": null
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "scenario": "C",
+  "description": "Qwen/Qwen3-0.6B ha usato la propria storia auto-predetta come contesto (inferenza live iterativa).",
+  "history_source": "self_predicted_Qwen-Qwen3-0-6B",
+  "model_source": "Qwen/Qwen3-0.6B",
+  "previous_history": {
+    "patient_id": "10000117",
+    "document_ids": [],
+    "sex": "female",
+    "age": 48,
+    "allergies": [],
+    "substances": [],
+    "family_history": [],
+    "clinical_problems": [],
+    "procedures": [],
+    "medications": [],
+    "measurements": []
+  },
+  "predicted_delta": {
+    "meta": {
+      "id": "22927623",
+      "type": "Inpatient",
+      "start_date": "2181-11-15",
+      "end_date": "2181-11-15"
+    },
+    "allergies": {
+      "allergies": [
+        {
+          "allergen": "omeprazole",
+          "category": "drug",
+          "severity": "severe",
+          "reaction": "anaphylaxis"
+        }
+      ]
+    },
+    "substances": {
+      "substances": [
+        {
+          "name": "tobacco",
+          "status": "Never",
+          "quantity": null,
+          "new_info": true,
+          "detail": "emphysema on imaging; smoking status not documented"
+        }
+      ]
+    },
+    "family_history": {
+      "family_history": [
+        {
+          "relationship": "Father",
+          "condition": "GERD",
+          "status": "denied",
+          "detail": ""
+        },
+        {
+          "relationship": "Father",
+          "condition": "Hypercholesterolemia",
+          "status": "denied",
+          "detail": ""
+        },
+        {
+          "relationship": "Father",
+          "condition": "Kidney stones",
+          "status": "denied",
+          "detail": ""
+        },
+        {
+          "relationship": "Father",
+          "condition": "Mitral valve prolapse",
+          "status": "denied",
+          "detail": ""
+        },
+        {
+          "relationship": "Father",
+          "condition": "Uterine fibroids",
+          "status": "denied",
+          "detail": ""
+        },
+        {
+          "relationship": "Father",
+          "condition": "Osteoporosis",
+          "status": "denied",
+          "detail": ""
+        },
+        {
+          "relationship": "Father",
+          "condition": "Migraine headaches",
+          "status": "denied",
+          "detail": ""
+        },
+        {
+          "relationship": "Father",
+          "condition": "Osteoporosis",
+          "status": "denied",
+          "detail": ""
+        },
+        {
+          "relationship": "Father",
+          "condition": "Hypercholesterolemia",
+          "status": "denied",
+          "detail": ""
+        },
+        {
+          "relationship": "Father",
+          "condition": "Kidney stones",
+          "status": "denied",
+          "detail": ""
+        },
+        {
+          "relationship": "Father",
+          "condition": "Migraine headaches",
+          "status": "denied",
+          "detail": ""
+        }
+      ]
+    },
+    "clinical_problems": {
+      "problems": [
+        {
+          "name": "dysphagia",
+          "category": "cardiovascular",
+          "status": "active",
+          "detail": "dysphagia and foreign body sensation",
+          "new_info": true
+        },
+        {
+          "name": "GERD",
+          "category": "respiratory",
+          "status": "active",
+          "detail": "GERD",
+          "new_info": true
+        },
+        {
+          "name": "primary diagnosis",
+          "category": "cardiovascular",
+          "status": "active",
+          "detail": "dysphagia and foreign body sensation",
+          "new_info": true
+        },
+        {
+          "name": "secondary diagnosis",
+          "category": "cardiovascular",
+          "status": "active",
+          "detail": "GERD",
+          "new_info": true
+        },
+        {
+          "name": "discharge condition",
+          "category": "cardiovascular",
+          "status": "active",
+          "detail": "Mental Status: Clear and coherent. Level of Consciousness: Alert and interactive. Activity Status: Ambulatory - Independent.",
+          "new_info": true
+        }
+      ]
+    },
+    "procedures": {
+      "procedures": [
+        {
+          "name": "Upper endoscopy ___",
+          "category": "interventional",
+          "significance": "major",
+          "detail": "Upper endoscopy ___"
+        },
+        {
+          "name": "EGD",
+          "category": "interventional",
+          "significance": "major",
+          "detail": "EGD"
+        },
+        {
+          "name": "EGD",
+          "category": "interventional",
+          "significance": "major",
+          "detail": "EGD"
+        }
+      ]
+    },
+    "medications": {
+      "events": [
+        {
+          "medication_name": "omeprazole",
+          "dosage": "20 mg",
+          "reason": "for dysphagia and foreign body sensation",
+          "category": "Hematological",
+          "status": "started",
+          "detail": "Held for dysphagia and foreign body sensation; resumed at discharge"
+        }
+      ]
+    },
+    "measurements": {
+      "measurements": [
+        {
+          "name": "heart_rate",
+          "category": "Vital Signs",
+          "value": 109.0,
+          "unit": "bpm",
+          "flag": null
+        },
+        {
+          "name": "blood_pressure",
+          "category": "Vital Signs",
+          "value": 148.0,
+          "unit": "mmHg",
+          "flag": null
+        },
+        {
+          "name": "temperature",
+          "category": "Vital Signs",
+          "value": 16.0,
+          "unit": "°C",
+          "flag": null
+        },
+        {
+          "name": "respiratory_rate",
+          "category": "Vital Signs",
+          "value": 16.0,
+          "unit": "breaths/min",
+          "flag": null
+        },
+        {
+          "name": "weight",
+          "category": "Vital Signs",
+          "value": 97.9,
+          "unit": "g",
+          "flag": null
+        },
+        {
+          "name": "bmi",
+          "category": "Vital Signs",
+          "value": 33.6,
+          "unit": "m² / kg²",
+          "flag": null
+        },
+        {
+          "name": "spO2",
+          "category": "Vital Signs",
+          "value": 100.0,
+          "unit": "%",
+          "flag": null
+        },
+        {
+          "name": "weight",
+          "category": "Vital Signs",
+          "value": 97.9,
+          "unit": "g",
+          "flag": null
+        }
+      ]
+    }
+  },
+  "accumulated_prediction": {
+    "patient_id": "10000117",
+    "document_ids": [
+      "22927623"
+    ],
+    "sex": "female",
+    "age": 48,
+    "allergies": [
+      {
+        "allergen": "omeprazole",
+        "category": "drug",
+        "severity": "severe",
+        "reaction": "anaphylaxis"
+      }
+    ],
+    "substances": [
+      {
+        "name": "tobacco",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "tobacco",
+              "status": "Never",
+              "quantity": null,
+              "new_info": true,
+              "detail": "emphysema on imaging; smoking status not documented"
+            }
+          ]
+        ]
+      }
+    ],
+    "family_history": [
+      {
+        "relationship": "Father",
+        "condition": "GERD",
+        "status": "denied",
+        "detail": ""
+      },
+      {
+        "relationship": "Father",
+        "condition": "Hypercholesterolemia",
+        "status": "denied",
+        "detail": ""
+      },
+      {
+        "relationship": "Father",
+        "condition": "Kidney stones",
+        "status": "denied",
+        "detail": ""
+      },
+      {
+        "relationship": "Father",
+        "condition": "Mitral valve prolapse",
+        "status": "denied",
+        "detail": ""
+      },
+      {
+        "relationship": "Father",
+        "condition": "Uterine fibroids",
+        "status": "denied",
+        "detail": ""
+      },
+      {
+        "relationship": "Father",
+        "condition": "Osteoporosis",
+        "status": "denied",
+        "detail": ""
+      },
+      {
+        "relationship": "Father",
+        "condition": "Migraine headaches",
+        "status": "denied",
+        "detail": ""
+      },
+      {
+        "relationship": "Father",
+        "condition": "Osteoporosis",
+        "status": "denied",
+        "detail": ""
+      },
+      {
+        "relationship": "Father",
+        "condition": "Hypercholesterolemia",
+        "status": "denied",
+        "detail": ""
+      },
+      {
+        "relationship": "Father",
+        "condition": "Kidney stones",
+        "status": "denied",
+        "detail": ""
+      },
+      {
+        "relationship": "Father",
+        "condition": "Migraine headaches",
+        "status": "denied",
+        "detail": ""
+      }
+    ],
+    "clinical_problems": [
+      {
+        "name": "dysphagia",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "dysphagia",
+              "category": "cardiovascular",
+              "status": "active",
+              "detail": "dysphagia and foreign body sensation",
+              "new_info": true
+            }
+          ]
+        ]
+      },
+      {
+        "name": "GERD",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "GERD",
+              "category": "respiratory",
+              "status": "active",
+              "detail": "GERD",
+              "new_info": true
+            }
+          ]
+        ]
+      },
+      {
+        "name": "primary diagnosis",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "primary diagnosis",
+              "category": "cardiovascular",
+              "status": "active",
+              "detail": "dysphagia and foreign body sensation",
+              "new_info": true
+            }
+          ]
+        ]
+      },
+      {
+        "name": "secondary diagnosis",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "secondary diagnosis",
+              "category": "cardiovascular",
+              "status": "active",
+              "detail": "GERD",
+              "new_info": true
+            }
+          ]
+        ]
+      },
+      {
+        "name": "discharge condition",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "discharge condition",
+              "category": "cardiovascular",
+              "status": "active",
+              "detail": "Mental Status: Clear and coherent. Level of Consciousness: Alert and interactive. Activity Status: Ambulatory - Independent.",
+              "new_info": true
+            }
+          ]
+        ]
+      }
+    ],
+    "procedures": [
+      {
+        "encounter": {
+          "id": "22927623",
+          "type": "Inpatient",
+          "start_date": "2181-11-15",
+          "end_date": "2181-11-15"
+        },
+        "procedures": [
+          {
+            "name": "Upper endoscopy ___",
+            "category": "interventional",
+            "significance": "major",
+            "detail": "Upper endoscopy ___"
+          },
+          {
+            "name": "EGD",
+            "category": "interventional",
+            "significance": "major",
+            "detail": "EGD"
+          },
+          {
+            "name": "EGD",
+            "category": "interventional",
+            "significance": "major",
+            "detail": "EGD"
+          }
+        ]
+      }
+    ],
+    "medications": [
+      {
+        "name": "omeprazole",
+        "events": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "medication_name": "omeprazole",
+              "dosage": "20 mg",
+              "reason": "for dysphagia and foreign body sensation",
+              "category": "Hematological",
+              "status": "started",
+              "detail": "Held for dysphagia and foreign body sensation; resumed at discharge"
+            }
+          ]
+        ]
+      }
+    ],
+    "measurements": [
+      {
+        "name": "heart_rate",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "heart_rate",
+              "category": "Vital Signs",
+              "value": 109.0,
+              "unit": "bpm",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "blood_pressure",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "blood_pressure",
+              "category": "Vital Signs",
+              "value": 148.0,
+              "unit": "mmHg",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "temperature",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "temperature",
+              "category": "Vital Signs",
+              "value": 16.0,
+              "unit": "°C",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "respiratory_rate",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "respiratory_rate",
+              "category": "Vital Signs",
+              "value": 16.0,
+              "unit": "breaths/min",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "weight",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "weight",
+              "category": "Vital Signs",
+              "value": 97.9,
+              "unit": "g",
+              "flag": null
+            }
+          ],
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "weight",
+              "category": "Vital Signs",
+              "value": 97.9,
+              "unit": "g",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "bmi",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "bmi",
+              "category": "Vital Signs",
+              "value": 33.6,
+              "unit": "m² / kg²",
+              "flag": null
+            }
+          ]
+        ]
+      },
+      {
+        "name": "spO2",
+        "data_points": [
+          [
+            {
+              "id": "22927623",
+              "type": "Inpatient",
+              "start_date": "2181-11-15",
+              "end_date": "2181-11-15"
+            },
+            {
+              "name": "spO2",
+              "category": "Vital Signs",
+              "value": 100.0,
+              "unit": "%",
+              "flag": null
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "score_final": 0.338055,
+  "score_delta": 0.338055
+}

@@ -1,8 +1,11 @@
+import logging
 from typing import Protocol
 
 from anthropic import AsyncAnthropic
 from openai import AsyncOpenAI
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class AsyncClient(Protocol):
@@ -51,6 +54,26 @@ class OpenAIClient:
         response = await self.client.responses.parse(
             **parse_kwargs,
         )
+
+        # Test 1: verifica che enable_thinking sia effettivo
+        raw_text = getattr(response, "output_text", None)
+        if raw_text is None:
+            try:
+                raw_text = response.output[0].content[0].text
+            except (AttributeError, IndexError):
+                pass
+        if raw_text is not None:
+            if "<think>" in raw_text or "</think>" in raw_text:
+                logger.warning(
+                    f"⚠ [THINKING RILEVATO] Token <think> presenti in {output_format.__name__} "
+                    f"— enable_thinking potrebbe non essere attivo!"
+                )
+            else:
+                logger.info(
+                    f"[OK] Nessun token <think> in {output_format.__name__}. "
+                    f"Inizio output: {raw_text[:80]!r}"
+                )
+
         return response.output_parsed
 
 

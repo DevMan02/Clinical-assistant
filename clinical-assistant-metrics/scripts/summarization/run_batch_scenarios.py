@@ -55,12 +55,16 @@ Processare solo alcuni pazienti:
 import argparse
 import asyncio
 import json
+import logging
 import math
 import re
+import warnings
+
+logging.basicConfig(level=logging.INFO, format="%(name)s — %(levelname)s — %(message)s")
 from pathlib import Path
 
 from openai import AsyncOpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from clinical_assistant.eval.summarization.aggregate import compute_aggregate_scores
 from clinical_assistant.eval.summarization.allergies import compute_allergy_metrics
@@ -223,24 +227,88 @@ def _strip_thinking_and_parse(text: str, fallback_type: type[BaseModel]) -> Base
     return None
 
 
+<<<<<<< HEAD
 async def _safe(extractor_fn, fallback_type: type[BaseModel], client=None):
+=======
+def _try_recover_truncated_events(raw_text: str, list_field: str) -> list:
+    """Recupera oggetti JSON completi da un array troncato (output token limit raggiunto)."""
+    match = re.search(r'"' + re.escape(list_field) + r'"\s*:\s*\[', raw_text)
+    if not match:
+        return []
+    array_content = raw_text[match.end():]
+    events = []
+    depth = 0
+    start = None
+    in_string = False
+    escape = False
+    for i, c in enumerate(array_content):
+        if escape:
+            escape = False
+            continue
+        if c == "\\" and in_string:
+            escape = True
+            continue
+        if c == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if c == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0 and start is not None:
+                try:
+                    events.append(json.loads(array_content[start : i + 1]))
+                except Exception:
+                    pass
+                start = None
+    return events
+
+
+async def _safe(
+    extractor_fn,
+    fallback_type: type[BaseModel],
+    client=None,
+    retry_lock: asyncio.Lock | None = None,
+    fallbacks_out: set | None = None,
+    section_name: str | None = None,
+):
+    def _register_fallback():
+        if fallbacks_out is not None and section_name is not None:
+            fallbacks_out.add(section_name)
+
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
     try:
         result = await extractor_fn()
         if result is None:
             list_field = next(iter(fallback_type.model_fields))
             print(f"      ⚠ {fallback_type.__name__} fallback (None dal modello)")
+<<<<<<< HEAD
+=======
+            _register_fallback()
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
             return fallback_type(**{list_field: []})
         return result
     except Exception as exc:
         exc_str = str(exc)
 
+<<<<<<< HEAD
         # Retry con meno token se vLLM segnala context length superato
+=======
+        # Retry con meno token se vLLM segnala context length superato.
+        # Il lock evita race condition su client.max_output_tokens quando le sezioni
+        # girano in parallelo con asyncio.gather.
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
         if "maximum context length" in exc_str and client is not None:
             input_match = re.search(r"prompt contains at least (\d+) input tokens", exc_str)
             ctx_match = re.search(r"maximum context length is (\d+) tokens", exc_str)
             if input_match and ctx_match:
                 input_tokens = int(input_match.group(1))
                 max_ctx = int(ctx_match.group(1))
+<<<<<<< HEAD
                 safe_tokens = max_ctx - input_tokens - 50
                 if safe_tokens > 50:
                     original = client.max_output_tokens
@@ -261,15 +329,84 @@ async def _safe(extractor_fn, fallback_type: type[BaseModel], client=None):
             raw_match = re.search(r"input_value='(.*?)'(?:,\s*input_type=)", exc_str, re.DOTALL)
             if raw_match:
                 raw_text = raw_match.group(1).encode().decode("unicode_escape")
+=======
+                safe_tokens = max_ctx - input_tokens - 200
+                if safe_tokens > 50:
+                    lock = retry_lock or asyncio.Lock()
+                    async with lock:
+                        original = client.max_output_tokens
+                        client.max_output_tokens = safe_tokens
+                        try:
+                            result = await extractor_fn()
+                            if result is None:
+                                list_field = next(iter(fallback_type.model_fields))
+                                _register_fallback()
+                                return fallback_type(**{list_field: []})
+                            return result
+                        except Exception as exc2:
+                            exc = exc2
+                        finally:
+                            client.max_output_tokens = original
+
+        # Fallback per modelli thinking + recupero JSON troncato
+        if "json_invalid" in exc_str or "Invalid JSON" in exc_str:
+            list_field = next(iter(fallback_type.model_fields))
+            raw_text = None
+
+            # Preferenza: legge il testo completo dall'oggetto ValidationError
+            # (pydantic tronca input_value nel messaggio str, ma .errors() ha il testo pieno)
+            if isinstance(exc, ValidationError):
+                for err in exc.errors():
+                    if err.get("type") == "json_invalid" and isinstance(err.get("input"), str):
+                        raw_text = err["input"]
+                        break
+
+            # Fallback: estrai dal repr stringa (può essere troncato)
+            if raw_text is None:
+                raw_match = re.search(r"input_value='(.*?)'(?:,\s*input_type=)", exc_str, re.DOTALL)
+                if raw_match:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore", DeprecationWarning)
+                        raw_text = raw_match.group(1).encode().decode("unicode_escape")
+
+            if raw_text is not None:
+                # Prova strip <think> e parse (modelli thinking)
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
                 try:
                     parsed = _strip_thinking_and_parse(raw_text, fallback_type)
                     if parsed is not None:
                         return parsed
                 except Exception:
                     pass
+<<<<<<< HEAD
 
         list_field = next(iter(fallback_type.model_fields))
         print(f"      ⚠ {fallback_type.__name__} fallback (lista vuota): {exc}")
+=======
+                # Recupero da JSON troncato (output token limit raggiunto).
+                # Valida ogni elemento individualmente: salta solo quelli con campi
+                # non validi (es. status enum fuori range), non l'intero batch.
+                try:
+                    recovered = _try_recover_truncated_events(raw_text, list_field)
+                    if recovered:
+                        valid_items = []
+                        for item_dict in recovered:
+                            try:
+                                single = fallback_type.model_validate({list_field: [item_dict]})
+                                valid_items.extend(getattr(single, list_field))
+                            except Exception:
+                                pass
+                        if valid_items:
+                            print(f"      ↩ {fallback_type.__name__} recuperato parzialmente "
+                                  f"({len(valid_items)}/{len(recovered)} elementi validi)")
+                            return fallback_type(**{list_field: valid_items})
+                except Exception:
+                    pass
+
+        list_field = next(iter(fallback_type.model_fields))
+        print(f"      ⚠ {fallback_type.__name__} fallback (lista vuota): {exc}")
+        _register_fallback()
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
         return fallback_type(**{list_field: []})
 
 
@@ -278,6 +415,7 @@ async def _extract_sequential(
     document: EncounterDocument,
     summary: PatientSummary,
     client=None,
+<<<<<<< HEAD
 ) -> PatientSummaryDelta:
     allergies = await _safe(
         lambda: extractor.allergy_extractor.extract_single_raw(document, summary.allergies),
@@ -308,6 +446,36 @@ async def _extract_sequential(
         MeasurementEventOutputFormat, client,
     )
     return PatientSummaryDelta(
+=======
+) -> tuple[PatientSummaryDelta, set[str]]:
+    # Lock condiviso tra le 7 sezioni per serializzare i retry su max_output_tokens.
+    # Le sezioni normali girano in parallelo (come in patient.py); solo i retry
+    # vengono serializzati per evitare race condition sullo stato del client.
+    lock = asyncio.Lock()
+    fallbacks: set[str] = set()
+
+    def safe(fn, fmt, section):
+        return _safe(fn, fmt, client=client, retry_lock=lock, fallbacks_out=fallbacks, section_name=section)
+
+    (
+        allergies,
+        substances,
+        family_history,
+        clinical_problems,
+        procedures,
+        medications,
+        measurements,
+    ) = await asyncio.gather(
+        safe(lambda: extractor.allergy_extractor.extract_single_raw(document, summary.allergies), AllergyOutputFormat, "allergies"),
+        safe(lambda: extractor.substance_use_extractor.extract_single_raw(document, summary.substances), SubstanceUseOutputFormat, "substances"),
+        safe(lambda: extractor.family_history_extractor.extract_single_raw(document, summary.family_history), FamilyHistoryOutputFormat, "family_history"),
+        safe(lambda: extractor.clinical_problem_extractor.extract_single_raw(document, summary.clinical_problems), ClinicalProblemOutputFormat, "clinical_problems"),
+        safe(lambda: extractor.procedure_extractor.extract_single_raw(document), ProcedureOutputFormat, "procedures"),
+        safe(lambda: extractor.medication_extractor.extract_single_raw(document, summary.medications), MedicationHistoryOutputFormat, "medications"),
+        safe(lambda: extractor.measurement_extractor.extract_single_raw(document, summary.measurements), MeasurementEventOutputFormat, "measurements"),
+    )
+    delta = PatientSummaryDelta(
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
         meta=document.meta,
         allergies=allergies,
         substances=substances,
@@ -317,6 +485,10 @@ async def _extract_sequential(
         medications=medications,
         measurements=measurements,
     )
+<<<<<<< HEAD
+=======
+    return delta, fallbacks
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
 
 
 async def _extract_with_retry(
@@ -325,7 +497,11 @@ async def _extract_with_retry(
     summary: PatientSummary,
     client=None,
     max_attempts: int = 3,
+<<<<<<< HEAD
 ) -> PatientSummaryDelta:
+=======
+) -> tuple[PatientSummaryDelta, set[str]]:
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
     for attempt in range(1, max_attempts + 1):
         try:
             return await _extract_sequential(extractor, document, summary, client)
@@ -396,7 +572,11 @@ async def process_patient(
         # Scenario A: modello + gold history (inferenza live)
         # ----------------------------------------------------------------
         print(f"    [A] Inferenza con gold history...")
+<<<<<<< HEAD
         delta_a = await _extract_with_retry(extractor, document, gold_summary_before, client=llm_client)
+=======
+        delta_a, fallbacks_a = await _extract_with_retry(extractor, document, gold_summary_before, client=llm_client)
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
         accumulated_a = noop_extractor.update(gold_summary_before, delta_a)
         delta_a_as_summary = noop_extractor.update(empty, delta_a)
         score_final_a = _round(_final_score(gold_summary_after, accumulated_a))
@@ -409,7 +589,11 @@ async def process_patient(
         # ----------------------------------------------------------------
         print(f"    [B] Inferenza con self history...")
         self_before = self_accumulated
+<<<<<<< HEAD
         delta_b = await _extract_with_retry(extractor, document, self_before, client=llm_client)
+=======
+        delta_b, fallbacks_b = await _extract_with_retry(extractor, document, self_before, client=llm_client)
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
         self_accumulated = noop_extractor.update(self_before, delta_b)
         delta_b_as_summary = noop_extractor.update(empty, delta_b)
         score_final_b = _round(_final_score(gold_summary_after, self_accumulated))
@@ -470,6 +654,11 @@ async def process_patient(
             "score_delta_b": score_delta_b,
             "sections_delta_a": sections_delta_a,
             "sections_delta_b": sections_delta_b,
+<<<<<<< HEAD
+=======
+            "fallbacks_a": sorted(fallbacks_a),
+            "fallbacks_b": sorted(fallbacks_b),
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
         })
 
     print(f"  Completato paziente {patient_id}")
@@ -496,8 +685,20 @@ async def main() -> None:
     parser.add_argument("--scores-dir", default="outputs/summarization/scores")
     parser.add_argument("--patient-ids", nargs="*", default=None,
                         help="Lista di patient_id da processare (default: tutti nel gold).")
+<<<<<<< HEAD
     args = parser.parse_args()
 
+=======
+    parser.add_argument("--verbose", action="store_true",
+                        help="Abilita log INFO (check enable_thinking, HTTP requests). Default: solo WARNING+.")
+    parser.add_argument("--frequency-penalty", type=float, default=None,
+                        help="Penalità proporzionale alla frequenza di ogni token (range [-2, 2]). "
+                             "Utile per ridurre loop di ripetizione. Default: non applicata.")
+    args = parser.parse_args()
+
+    logging.getLogger().setLevel(logging.INFO if args.verbose else logging.WARNING)
+
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
     gold_path = Path(args.gold_path)
     model_slug = args.model.replace("/", "-").replace(".", "-")
     scenario_dir = Path(args.output_dir) / model_slug
@@ -518,10 +719,18 @@ async def main() -> None:
     if args.provider == "llamacpp":
         llm_client = LlamaCppClient(_openai, model=args.model, max_output_tokens=args.max_tokens)
     else:
+<<<<<<< HEAD
         # Responses API con xgrammar (constrained decoding): output JSON garantito.
         # Richiede --chat-template qwen3_nonthinking.jinja sul server per disabilitare
         # i token <think> che crashano l'FSM di xgrammar.
         llm_client = OpenAIClient(_openai, model=args.model, max_output_tokens=args.max_tokens)
+=======
+        extra_body = {"chat_template_kwargs": {"enable_thinking": False}}
+        if args.frequency_penalty is not None:
+            extra_body["frequency_penalty"] = args.frequency_penalty
+            print(f"frequency_penalty = {args.frequency_penalty}")
+        llm_client = OpenAIClient(_openai, model=args.model, max_output_tokens=args.max_tokens, extra_body=extra_body)
+>>>>>>> f5dade5 (feat(summarization): add batch A/B scenario benchmarking pipeline)
 
     extractor = PatientSummaryExtractor(llm_client)
     noop_extractor = PatientSummaryExtractor(_NoopClient())
