@@ -132,7 +132,7 @@ def compute_summary(all_scores: list[dict], llm_name: str, digits: int = 6) -> d
             round(float(np.mean(section_scores)), digits) if section_scores else 0.0
         )
 
-    patient_scores = [s["patient_score"] for s in all_scores if "patient_score" in s]
+    patient_scores = [s["patient_score"] for s in all_scores if s.get("patient_score") is not None]
 
     return {
         "llm": llm_name,

@@ -121,6 +121,6 @@ def compute_aggregate_scores(metrics: dict) -> dict:
         sections["procedures"] = s
 
     scores["sections"] = sections
-    scores["patient_score"] = float(np.mean([s["section_score"] for s in sections.values()])) if sections else 0.0
+    scores["patient_score"] = float(np.mean([s["section_score"] for s in sections.values()])) if sections else None
 
     return scores

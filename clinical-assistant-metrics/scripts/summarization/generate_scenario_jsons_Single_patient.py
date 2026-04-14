@@ -137,10 +137,11 @@ def _compute_all_metrics(ref: PatientSummary, pred: PatientSummary) -> dict:
     return metrics
 
 
-def _final_score(reference: PatientSummary, predicted: PatientSummary) -> float:
+def _final_score(reference: PatientSummary, predicted: PatientSummary) -> float | None:
     metrics = _compute_all_metrics(reference, predicted)
     scores = compute_aggregate_scores(metrics)
-    return float(scores.get("patient_score", 0.0))
+    ps = scores.get("patient_score")
+    return float(ps) if ps is not None else None
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +170,25 @@ def _save_json(path: Path, payload: dict) -> None:
         json.dump(payload, f, indent=2, default=str, ensure_ascii=False)
 
 
+def _strip_thinking_and_parse(text: str, fallback_type: type[BaseModel]) -> BaseModel | None:
+    """Prova a recuperare JSON valido quando il modello antepone testo non strutturato.
+
+    Alcuni modelli reasoning (es. Qwen3) possono restituire blocchi <think> o markdown
+    anche con structured output attivo; questa funzione tenta il parsing del primo JSON.
+    """
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE).strip()
+    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+    cleaned = re.sub(r"\s*```$", "", cleaned).strip()
+    match = re.search(r"(\{.*\}|\[.*\])", cleaned, flags=re.DOTALL)
+    if not match:
+        return None
+
+    try:
+        return fallback_type.model_validate_json(match.group(1))
+    except Exception:
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Estrazione sequenziale con retry (per Scenario A — inferenza live)
 #
@@ -178,14 +198,13 @@ def _save_json(path: Path, payload: dict) -> None:
 # ---------------------------------------------------------------------------
 
 async def _safe(extractor_fn, fallback_type: type[BaseModel], client=None):
-    """Chiama extractor_fn() con retry automatico su errore 400 context-length.
-
-    Quando vLLM risponde con "maximum context length is X, prompt contains Y tokens",
-    calcoliamo i token disponibili (X - Y - 50) e riproviamo con max_output_tokens
-    ridotto. Se anche il retry fallisce, restituiamo lista vuota.
-    """
     try:
-        return await extractor_fn()
+        result = await extractor_fn()
+        if result is None:
+            list_field = next(iter(fallback_type.model_fields))
+            print(f"      ⚠ {fallback_type.__name__} fallback (None dal modello)")
+            return fallback_type(**{list_field: []})
+        return result
     except Exception as exc:
         exc_str = str(exc)
         if "maximum context length" in exc_str and client is not None:
@@ -206,6 +225,22 @@ async def _safe(extractor_fn, fallback_type: type[BaseModel], client=None):
                         exc = exc2
                     finally:
                         client.max_output_tokens = original
+
+        # Alcuni backend possono restituire testo con prefissi markdown/thinking.
+        # Prova a estrarre un JSON valido prima del fallback a lista vuota.
+        if "json_invalid" in exc_str or "Invalid JSON" in exc_str:
+            raw_match = re.search(r"input_value='(.*?)'(?:,\s*input_type=)", exc_str, re.DOTALL)
+            if raw_match:
+                raw_text = raw_match.group(1)
+                try:
+                    raw_text = raw_text.encode().decode("unicode_escape")
+                except Exception:
+                    pass
+                parsed = _strip_thinking_and_parse(raw_text, fallback_type)
+                if parsed is not None:
+                    print(f"      ↩ Recuperato JSON valido per {fallback_type.__name__} da output testuale")
+                    return parsed
+
         list_field = next(iter(fallback_type.model_fields))
         print(f"      ⚠ {fallback_type.__name__} fallback (lista vuota): {exc}")
         return fallback_type(**{list_field: []})
@@ -282,8 +317,11 @@ async def main() -> None:
         description="Genera i JSON di confronto Scenario A / B per un paziente."
     )
     parser.add_argument("--gold-path", default="data/claude-sonnet-4-6.jsonl")
-    parser.add_argument("--qwen-path", default="data/Qwen-Qwen3-4B-Instruct-2507.jsonl")
+    parser.add_argument("--qwen-path", default="data/Qwen-Qwen3-4B-Instruct-2507.jsonl",
+                        help="JSONL pre-generato per Scenario B. Se il file non esiste, Scenario B viene skippato.")
     parser.add_argument("--patient-id", default="10000032")
+    parser.add_argument("--max-docs", type=int, default=0,
+                        help="Limita il numero di documenti da processare (0 = tutti).")
     parser.add_argument("--output-dir", default="outputs/summarization/scenario_comparison")
     parser.add_argument(
         "--base-url", default="http://localhost:8000/v1",
@@ -304,6 +342,18 @@ async def main() -> None:
         help="Provider del server LLM: 'vllm' usa la Responses API (default), "
              "'llamacpp' usa la Chat Completions API (per llama-server con GGUF).",
     )
+    parser.add_argument(
+        "--enable-thinking", action="store_true",
+        help="Abilita reasoning/thinking nel template chat. Di default viene disabilitato "
+             "per migliorare affidabilita del JSON strutturato.",
+    )
+    parser.add_argument(
+        "--guided-decoding-backend",
+        default="outlines",
+        choices=["outlines", "xgrammar", "lm-format-enforcer"],
+        help="Backend guided decoding per vLLM. 'outlines' evita errori noti di xgrammar "
+             "su alcuni modelli/schema.",
+    )
     args = parser.parse_args()
 
     gold_path = Path(args.gold_path)
@@ -313,118 +363,89 @@ async def main() -> None:
     output_dir = Path(args.output_dir) / model_slug / patient_id
 
     gold_rows = _load_rows_by_patient(gold_path, patient_id)
-    qwen_rows = _load_rows_by_patient(qwen_path, patient_id)
-    qwen_by_doc_id = {str(r["document"]["meta"]["id"]): r for r in qwen_rows}
-
     if not gold_rows:
         raise ValueError(f"Nessuna riga trovata per il paziente {patient_id} in {gold_path}")
-    if not qwen_rows:
-        raise ValueError(f"Nessuna riga trovata per il paziente {patient_id} in {qwen_path}")
 
-    print(f"Paziente {patient_id}: {len(gold_rows)} documenti.")
-    print(f"Model: {args.model}  |  Provider: {args.provider}  |  URL: {args.base_url}\n")
+    # Scenario B opzionale: skippato se il file qwen non esiste
+    run_scenario_b = qwen_path.exists()
+    if run_scenario_b:
+        qwen_rows = _load_rows_by_patient(qwen_path, patient_id)
+        qwen_by_doc_id = {str(r["document"]["meta"]["id"]): r for r in qwen_rows}
+        if not qwen_rows:
+            print(f"[WARN] Nessuna riga Qwen per paziente {patient_id} — Scenario B skippato.")
+            run_scenario_b = False
+    else:
+        qwen_rows = []
+        qwen_by_doc_id = {}
+        print(f"[INFO] {qwen_path} non trovato — Scenario B skippato.")
+
+    # Limita il numero di documenti se richiesto
+    if args.max_docs > 0:
+        gold_rows = gold_rows[: args.max_docs]
+        qwen_rows = qwen_rows[: args.max_docs]
+
+    print(f"Paziente {patient_id}: {len(gold_rows)} documenti da processare.")
+    print(f"Model: {args.model}  |  Provider: {args.provider}  |  URL: {args.base_url}")
+    print(f"Scenario B: {'sì' if run_scenario_b else 'no (file JSONL mancante)'}\n")
 
     _openai = AsyncOpenAI(api_key="EMPTY", base_url=args.base_url)
     if args.provider == "llamacpp":
         llm_client = LlamaCppClient(_openai, model=args.model, max_output_tokens=args.max_tokens)
     else:
-        llm_client = OpenAIClient(_openai, model=args.model, max_output_tokens=args.max_tokens)
+        extra_body: dict = {
+            "guided_decoding_backend": args.guided_decoding_backend,
+        }
+        if not args.enable_thinking:
+            extra_body["chat_template_kwargs"] = {"enable_thinking": False}
+
+        llm_client = OpenAIClient(
+            _openai,
+            model=args.model,
+            max_output_tokens=args.max_tokens,
+            extra_body=extra_body,
+        )
+        print(f"Responses extra_body: {extra_body}")
 
     qwen_extractor = PatientSummaryExtractor(llm_client)
     noop_extractor = PatientSummaryExtractor(_NoopClient())
 
     # Scenario C: storia accumulata da FP8 su se stesso (aggiornata ad ogni documento)
+    def _round(v): return round(v, 6) if v is not None else None
+
     first_gold = PatientSummary.model_validate(gold_rows[0]["summary"])
-    fp8_accumulated = PatientSummary(
+    self_accumulated = PatientSummary(
         patient_id=patient_id, document_ids=[],
         sex=first_gold.sex, age=first_gold.age,
     )
 
+    saved_count = 0
     for idx, gold_row in enumerate(gold_rows, start=1):
         doc_id = str(gold_row["document"]["meta"]["id"])
         doc_meta = gold_row["document"]["meta"]
         document = EncounterDocument.model_validate(gold_row["document"])
 
-        # Tronca il documento se richiesto (riduce i token di input per vLLM vincolato)
         if args.max_doc_chars > 0 and len(document.content) > args.max_doc_chars:
             truncated_content = document.content[: args.max_doc_chars] + "\n[DOCUMENT TRUNCATED]"
             document = document.model_copy(update={"content": truncated_content})
             print(f"  ✂ Documento troncato a {args.max_doc_chars} chars "
                   f"(originale: {len(gold_row['document']['content'])} chars)")
 
-        if doc_id not in qwen_by_doc_id:
-            raise ValueError(f"Documento {doc_id} non trovato nel file Qwen.")
-
-        qwen_row = qwen_by_doc_id[doc_id]
-
         print(f"doc_{idx:02d} ({doc_id})  start={doc_meta.get('start_date')}")
 
-        # ----------------------------------------------------------------
-        # Target: summary accumulato da Claude DOPO questo documento.
-        # Per i < len: è il "summary" della riga successiva nel JSONL gold.
-        # Per l'ultimo documento: si calcola con update().
-        # ----------------------------------------------------------------
+        # Target gold
         gold_summary_before = PatientSummary.model_validate(gold_row["summary"])
         gold_delta = PatientSummaryDelta.model_validate(gold_row["summary_delta"])
         if idx < len(gold_rows):
-            # Già presente nel JSONL come "summary" del documento successivo
             gold_summary_after = PatientSummary.model_validate(gold_rows[idx]["summary"])
         else:
             gold_summary_after = noop_extractor.update(gold_summary_before, gold_delta)
 
-        # ----------------------------------------------------------------
-        # Scenario B: summary accumulato da Qwen DOPO questo documento.
-        # Per i < len: è il "summary" della riga Qwen successiva (zero inferenza).
-        # Per l'ultimo documento: si calcola con update().
-        # ----------------------------------------------------------------
-        qwen_summary_before = PatientSummary.model_validate(qwen_row["summary"])
-        qwen_delta = PatientSummaryDelta.model_validate(qwen_row["summary_delta"])
-        if idx < len(qwen_rows):
-            qwen_summary_after = PatientSummary.model_validate(qwen_rows[idx]["summary"])
-        else:
-            qwen_summary_after = noop_extractor.update(qwen_summary_before, qwen_delta)
-
-        # score_delta B: confronto puro delta Qwen(qwen_history) vs delta Claude
-        # — converte entrambi i delta in PatientSummary con storia vuota
         empty_summary = PatientSummary(
-            patient_id=patient_id, document_ids=[], sex=gold_summary_before.sex, age=gold_summary_before.age
+            patient_id=patient_id, document_ids=[],
+            sex=gold_summary_before.sex, age=gold_summary_before.age,
         )
         gold_delta_as_summary = noop_extractor.update(empty_summary, gold_delta)
-        qwen_delta_as_summary = noop_extractor.update(empty_summary, qwen_delta)
-        score_b = round(_final_score(gold_summary_after, qwen_summary_after), 6)
-        score_delta_b = round(_final_score(gold_delta_as_summary, qwen_delta_as_summary), 6)
-        print(f"  [B] score_B = {score_b:.4f}  score_delta_B = {score_delta_b:.4f}  (dal JSONL Qwen, zero inferenza)")
 
-        # ----------------------------------------------------------------
-        # Scenario A: Qwen riceve il documento + storia gold come contesto.
-        # Inferenza live — produce delta_A, poi accumulated_A = update().
-        # ----------------------------------------------------------------
-        print(f"  [A] Estrazione con {args.model} e storia gold (inferenza live)...")
-        delta_a = await _extract_with_retry(qwen_extractor, document, gold_summary_before, client=llm_client)
-        accumulated_a = noop_extractor.update(gold_summary_before, delta_a)
-        delta_a_as_summary = noop_extractor.update(empty_summary, delta_a)
-        score_a = round(_final_score(gold_summary_after, accumulated_a), 6)
-        score_delta_a = round(_final_score(gold_delta_as_summary, delta_a_as_summary), 6)
-        print(f"      score_A = {score_a:.4f}  score_delta_A = {score_delta_a:.4f}")
-
-        # ----------------------------------------------------------------
-        # Scenario C: FP8 con storia auto-predetta da se stesso (inferenza live).
-        # Replica la struttura di dataset.py ma con FP8 invece di 2507.
-        # fp8_accumulated viene aggiornato ad ogni documento e riusato al prossimo.
-        # Confronto C vs B = effetto modello puro (stessa self-history, modelli diversi).
-        # ----------------------------------------------------------------
-        print(f"  [C] Estrazione con {args.model} storia self-predetta (inferenza live)...")
-        fp8_before = fp8_accumulated  # salva lo stato PRIMA dell'update
-        delta_c = await _extract_with_retry(qwen_extractor, document, fp8_before, client=llm_client)
-        fp8_accumulated = noop_extractor.update(fp8_before, delta_c)
-        delta_c_as_summary = noop_extractor.update(empty_summary, delta_c)
-        score_c = round(_final_score(gold_summary_after, fp8_accumulated), 6)
-        score_delta_c = round(_final_score(gold_delta_as_summary, delta_c_as_summary), 6)
-        print(f"      score_C = {score_c:.4f}  score_delta_C = {score_delta_c:.4f}")
-
-        # ----------------------------------------------------------------
-        # Salvataggio JSON
-        # ----------------------------------------------------------------
         base = {
             "patient_id": patient_id,
             "document_id": doc_id,
@@ -438,12 +459,23 @@ async def main() -> None:
             "accumulated_target": gold_summary_after.model_dump(),
         }
 
-        scenario_a = {
+        # ----------------------------------------------------------------
+        # Scenario A: modello + storia gold (inferenza live)
+        # ----------------------------------------------------------------
+        print(f"  [A] Estrazione con {args.model} e storia gold (inferenza live)...")
+        delta_a = await _extract_with_retry(qwen_extractor, document, gold_summary_before, client=llm_client)
+        accumulated_a = noop_extractor.update(gold_summary_before, delta_a)
+        delta_a_as_summary = noop_extractor.update(empty_summary, delta_a)
+        score_a = _round(_final_score(gold_summary_after, accumulated_a))
+        score_delta_a = _round(_final_score(gold_delta_as_summary, delta_a_as_summary))
+        print(f"      score_A = {score_a}  score_delta_A = {score_delta_a}")
+
+        _save_json(output_dir / f"doc_{idx:02d}_scenario_a.json", {
             **base,
             "scenario": "A",
             "description": (
                 f"{args.model} ha ricevuto il documento + storia gold (Claude) come contesto. "
-                "Inferenza live. Score = similarità tra accumulated_A e il target gold."
+                "Inferenza live."
             ),
             "history_source": "gold_claude",
             "model_source": args.model,
@@ -452,46 +484,69 @@ async def main() -> None:
             "accumulated_prediction": accumulated_a.model_dump(),
             "score_final": score_a,
             "score_delta": score_delta_a,
-        }
+        })
+        saved_count += 1
 
-        scenario_b = {
-            **base,
-            "scenario": "B",
-            "description": (
-                "Qwen ha usato la propria storia auto-predetta come contesto (dal JSONL, zero inferenza). "
-                "Score = similarità tra accumulated_B e il target gold."
-            ),
-            "history_source": "self_predicted_qwen",
-            "model_source": "Qwen-Qwen3-4B-Instruct-2507",
-            "previous_history": qwen_row["summary"],
-            "predicted_delta": qwen_row["summary_delta"],
-            "accumulated_prediction": qwen_summary_after.model_dump(),
-            "score_final": score_b,
-            "score_delta": score_delta_b,
-        }
+        # ----------------------------------------------------------------
+        # Scenario B (opzionale): summary pre-generato dal JSONL, zero inferenza
+        # ----------------------------------------------------------------
+        if run_scenario_b and doc_id in qwen_by_doc_id:
+            qwen_row = qwen_by_doc_id[doc_id]
+            qwen_summary_before = PatientSummary.model_validate(qwen_row["summary"])
+            qwen_delta = PatientSummaryDelta.model_validate(qwen_row["summary_delta"])
+            if idx < len(qwen_rows):
+                qwen_summary_after = PatientSummary.model_validate(qwen_rows[idx]["summary"])
+            else:
+                qwen_summary_after = noop_extractor.update(qwen_summary_before, qwen_delta)
+            qwen_delta_as_summary = noop_extractor.update(empty_summary, qwen_delta)
+            score_b = _round(_final_score(gold_summary_after, qwen_summary_after))
+            score_delta_b = _round(_final_score(gold_delta_as_summary, qwen_delta_as_summary))
+            print(f"  [B] score_B = {score_b}  score_delta_B = {score_delta_b}  (dal JSONL, zero inferenza)")
 
-        scenario_c = {
+            _save_json(output_dir / f"doc_{idx:02d}_scenario_b.json", {
+                **base,
+                "scenario": "B",
+                "description": "Storia auto-predetta dal JSONL pre-generato (zero inferenza).",
+                "history_source": "self_predicted_qwen",
+                "model_source": args.qwen_path,
+                "previous_history": qwen_row["summary"],
+                "predicted_delta": qwen_row["summary_delta"],
+                "accumulated_prediction": qwen_summary_after.model_dump(),
+                "score_final": score_b,
+                "score_delta": score_delta_b,
+            })
+            saved_count += 1
+
+        # ----------------------------------------------------------------
+        # Scenario C: modello + storia auto-predetta (inferenza live iterativa)
+        # ----------------------------------------------------------------
+        print(f"  [C] Estrazione con {args.model} storia self-predetta (inferenza live)...")
+        self_before = self_accumulated
+        delta_c = await _extract_with_retry(qwen_extractor, document, self_before, client=llm_client)
+        self_accumulated = noop_extractor.update(self_before, delta_c)
+        delta_c_as_summary = noop_extractor.update(empty_summary, delta_c)
+        score_c = _round(_final_score(gold_summary_after, self_accumulated))
+        score_delta_c = _round(_final_score(gold_delta_as_summary, delta_c_as_summary))
+        print(f"      score_C = {score_c}  score_delta_C = {score_delta_c}")
+
+        _save_json(output_dir / f"doc_{idx:02d}_scenario_c.json", {
             **base,
             "scenario": "C",
             "description": (
-                f"{args.model} ha usato la propria storia auto-predetta come contesto (inferenza live iterativa). "
-                "Confronto C vs B = effetto modello puro (stesso tipo self-history, modelli diversi)."
+                f"{args.model} ha usato la propria storia auto-predetta come contesto (inferenza live iterativa)."
             ),
             "history_source": f"self_predicted_{model_slug}",
             "model_source": args.model,
-            "previous_history": fp8_before.model_dump(),
+            "previous_history": self_before.model_dump(),
             "predicted_delta": delta_c.model_dump(),
-            "accumulated_prediction": fp8_accumulated.model_dump(),
+            "accumulated_prediction": self_accumulated.model_dump(),
             "score_final": score_c,
             "score_delta": score_delta_c,
-        }
+        })
+        saved_count += 1
+        print(f"  Salvati: doc_{idx:02d} scenari completati\n")
 
-        _save_json(output_dir / f"doc_{idx:02d}_scenario_a.json", scenario_a)
-        _save_json(output_dir / f"doc_{idx:02d}_scenario_b.json", scenario_b)
-        _save_json(output_dir / f"doc_{idx:02d}_scenario_c.json", scenario_c)
-        print(f"  Salvati: doc_{idx:02d}_scenario_a/b/c.json\n")
-
-    print(f"Completato. {len(gold_rows) * 3} file JSON salvati in: {output_dir}")
+    print(f"Completato. {saved_count} file JSON salvati in: {output_dir}")
     print(f"Model: {args.model}  |  Output slug: {model_slug}")
 
 
