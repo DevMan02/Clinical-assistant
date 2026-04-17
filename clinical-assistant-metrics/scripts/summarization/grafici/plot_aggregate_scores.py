@@ -29,6 +29,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+from matplotlib.lines import Line2D
 import numpy as np
 
 SECTIONS = [
@@ -46,7 +47,15 @@ SECTION_LABELS = {
     "procedures": "Procedures",
 }
 
-# Palette colori: un colore per modello, linestyle diverso per scenario A/B
+# Mappa slug → nome leggibile del modello
+MODEL_DISPLAY_NAMES: dict[str, str] = {
+    "Qwen-Qwen3-0-6B":             "0.6B",
+    "Qwen-Qwen3-1-7B":             "1.7B",
+    "Qwen-Qwen3-4B-Instruct-2507": "4B",
+    "Qwen-Qwen3-4B-Instruct-2507-FP8": "4B-FP8",
+}
+
+# Palette colori: un colore per modello (multi-modello), linestyle/marker diverso per scenario A/B
 MODEL_COLORS = [
     "#2563eb",  # blu
     "#dc2626",  # rosso
@@ -55,6 +64,22 @@ MODEL_COLORS = [
     "#d97706",  # ambra
     "#0891b2",  # ciano
 ]
+
+# Colori dedicati per A/B quando si usa un solo modello
+SINGLE_MODEL_SCENARIO_COLORS = {
+    "a": "#2563eb",  # blu  → gold history
+    "b": "#f97316",  # arancione → self history
+}
+
+# Scenario A: linea continua, cerchio  — Scenario B: linea tratteggiata, quadrato
+SCENARIO_STYLE = {
+    "a": {"linestyle": "-",  "marker": "o", "label_suffix": "A (gold history)"},
+    "b": {"linestyle": "--", "marker": "s", "label_suffix": "B (self history)"},
+}
+
+
+def _get_display_name(slug: str) -> str:
+    return MODEL_DISPLAY_NAMES.get(slug, slug.split("-")[-1])
 
 
 def _load_scores(scores_path: Path) -> list[dict]:
@@ -130,6 +155,7 @@ def _plot_overall(
     scenario: str,
     color: str,
     linestyle: str,
+    marker: str,
     label: str,
 ) -> None:
     agg = _aggregate_by_doc_index(model_data, score_key)
@@ -141,7 +167,7 @@ def _plot_overall(
     stds = [agg[i]["std"] for i in x]
     ns = [agg[i]["n"] for i in x]
 
-    ax.plot(x, means, color=color, linestyle=linestyle, marker="o",
+    ax.plot(x, means, color=color, linestyle=linestyle, marker=marker,
             linewidth=2.2, markersize=7, label=label)
     ax.fill_between(x,
                     [m - s for m, s in zip(means, stds)],
@@ -159,18 +185,49 @@ def plot_overall(
     output_path: Path,
 ) -> None:
     """Grafico 1: score_delta aggregato per posizione documento, A e B per ogni modello."""
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(11, 5.5))
     ax.set_title("Score delta aggregato per posizione documento\n(media ± std su tutti i pazienti)",
                  fontsize=12, fontweight="bold")
 
+    single_model = len(models_records) == 1
+    model_legend_handles = []
     for i, (model_slug, records) in enumerate(models_records.items()):
-        color = MODEL_COLORS[i % len(MODEL_COLORS)]
-        short = model_slug.split("-")[-1] if "-" in model_slug else model_slug
+        model_color = MODEL_COLORS[i % len(MODEL_COLORS)]
+        display = _get_display_name(model_slug)
 
-        _plot_overall(ax, records, "score_delta_a", "a", color, "-",
-                      f"{short} — A (gold history)")
-        _plot_overall(ax, records, "score_delta_b", "b", color, "--",
-                      f"{short} — B (self history)")
+        for scenario_key, style in SCENARIO_STYLE.items():
+            color = SINGLE_MODEL_SCENARIO_COLORS[scenario_key] if single_model else model_color
+            score_key = f"score_delta_{scenario_key}"
+            _plot_overall(ax, records, score_key, scenario_key,
+                          color, style["linestyle"], style["marker"],
+                          label=f"{display} — {style['label_suffix']}")
+
+        if not single_model:
+            model_legend_handles.append(
+                Line2D([0], [0], color=model_color, linewidth=2.5, marker="o",
+                       markersize=7, label=display)
+            )
+
+    # Legenda: multi-modello → colore=modello + stile=scenario
+    #          singolo modello → colore=scenario direttamente
+    if single_model:
+        legend_handles = [
+            Line2D([0], [0], color=SINGLE_MODEL_SCENARIO_COLORS["a"], linewidth=2,
+                   linestyle="-", marker="o", markersize=7, label="A — gold history"),
+            Line2D([0], [0], color=SINGLE_MODEL_SCENARIO_COLORS["b"], linewidth=2,
+                   linestyle="--", marker="s", markersize=7, label="B — self history"),
+        ]
+    else:
+        scenario_handles = [
+            Line2D([0], [0], color="gray", linewidth=2, linestyle="-",
+                   marker="o", markersize=7, label="A — gold history (storia reale)"),
+            Line2D([0], [0], color="gray", linewidth=2, linestyle="--",
+                   marker="s", markersize=7, label="B — self history (storia generata)"),
+        ]
+        legend_handles = model_legend_handles + scenario_handles
+    ax.legend(handles=legend_handles, fontsize=8.5, loc="lower right",
+              title="Modello / Scenario", title_fontsize=8.5,
+              framealpha=0.9, edgecolor="#cccccc")
 
     # x ticks = tutti gli indici documento presenti
     all_indices = sorted({r["document_index"] for recs in models_records.values() for r in recs})
@@ -180,7 +237,6 @@ def plot_overall(
     ax.set_ylabel("Score delta [0–1]", fontsize=10)
     ax.set_ylim(0, 1.2)
     ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
-    ax.legend(fontsize=8.5, loc="lower right")
     ax.grid(axis="y", linestyle=":", alpha=0.4)
 
     plt.tight_layout()
@@ -218,15 +274,18 @@ def plot_sections(
 
     all_indices = sorted({r["document_index"] for recs in models_records.values() for r in recs})
 
+    single_model = len(models_records) == 1
     for ax, section in zip(axes, present_sections):
         ax.set_title(SECTION_LABELS.get(section, section), fontsize=10)
 
+        model_legend_handles = []
         for i, (model_slug, records) in enumerate(models_records.items()):
-            color = MODEL_COLORS[i % len(MODEL_COLORS)]
-            short = model_slug.split("-")[-1] if "-" in model_slug else model_slug
+            model_color = MODEL_COLORS[i % len(MODEL_COLORS)]
+            display = _get_display_name(model_slug)
 
-            for scenario, linestyle, suffix in [("a", "-", "A"), ("b", "--", "B")]:
-                agg = _aggregate_sections_by_doc_index(records, scenario)
+            for scenario_key, style in SCENARIO_STYLE.items():
+                color = SINGLE_MODEL_SCENARIO_COLORS[scenario_key] if single_model else model_color
+                agg = _aggregate_sections_by_doc_index(records, scenario_key)
                 sec_data = agg.get(section, {})
                 if not sec_data:
                     continue
@@ -236,9 +295,9 @@ def plot_sections(
                 stds = [sec_data[xi]["std"] for xi in x]
                 ns = [sec_data[xi]["n"] for xi in x]
 
-                ax.plot(x, means, color=color, linestyle=linestyle, marker="o",
-                        linewidth=2, markersize=6,
-                        label=f"{short} {suffix}")
+                ax.plot(x, means, color=color, linestyle=style["linestyle"],
+                        marker=style["marker"], linewidth=2, markersize=6,
+                        label=f"{display} {style['label_suffix']}")
                 ax.fill_between(x,
                                 [m - s for m, s in zip(means, stds)],
                                 [m + s for m, s in zip(means, stds)],
@@ -249,6 +308,12 @@ def plot_sections(
                                 textcoords="offset points", xytext=(0, 8),
                                 ha="center", fontsize=7, color=color)
 
+            if not single_model:
+                model_legend_handles.append(
+                    Line2D([0], [0], color=model_color, linewidth=2, marker="o",
+                           markersize=6, label=display)
+                )
+
         ax.set_xticks(all_indices)
         ax.set_xticklabels([f"doc {i}" for i in all_indices], fontsize=8.5)
         ax.set_ylim(0, 1.2)
@@ -256,7 +321,24 @@ def plot_sections(
         ax.grid(axis="y", linestyle=":", alpha=0.4)
         if ax == axes[0]:
             ax.set_ylabel("Section score [0–1]", fontsize=9)
-            ax.legend(fontsize=7.5, loc="lower right")
+            if single_model:
+                legend_handles = [
+                    Line2D([0], [0], color=SINGLE_MODEL_SCENARIO_COLORS["a"], linewidth=2,
+                           linestyle="-", marker="o", markersize=6, label="A — gold history"),
+                    Line2D([0], [0], color=SINGLE_MODEL_SCENARIO_COLORS["b"], linewidth=2,
+                           linestyle="--", marker="s", markersize=6, label="B — self history"),
+                ]
+            else:
+                scenario_handles = [
+                    Line2D([0], [0], color="gray", linewidth=2, linestyle="-",
+                           marker="o", markersize=6, label="A — gold history"),
+                    Line2D([0], [0], color="gray", linewidth=2, linestyle="--",
+                           marker="s", markersize=6, label="B — self history"),
+                ]
+                legend_handles = model_legend_handles + scenario_handles
+            ax.legend(handles=legend_handles, fontsize=7.5, loc="lower right",
+                      title="Modello / Scenario", title_fontsize=7.5,
+                      framealpha=0.9, edgecolor="#cccccc")
 
     plt.tight_layout()
     output_path.parent.mkdir(parents=True, exist_ok=True)

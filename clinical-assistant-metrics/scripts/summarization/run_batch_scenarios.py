@@ -59,9 +59,33 @@ import logging
 import math
 import re
 import warnings
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format="%(name)s — %(levelname)s — %(message)s")
 from pathlib import Path
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    ProgressColumn,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
+from rich.text import Text
+
+
+class _ClockColumn(ProgressColumn):
+    """Mostra l'ora corrente accanto alla barra di avanzamento."""
+    def render(self, task) -> Text:
+        return Text(datetime.now().strftime("%H:%M:%S"), style="bold cyan")
+
+
+console = Console()
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel, ValidationError
@@ -281,7 +305,7 @@ async def _safe(
         result = await extractor_fn()
         if result is None:
             list_field = next(iter(fallback_type.model_fields))
-            print(f"      ⚠ {fallback_type.__name__} fallback (None dal modello)")
+            console.log(f"      ⚠ {fallback_type.__name__} fallback (None dal modello)")
             _register_fallback()
             return fallback_type(**{list_field: []})
         return result
@@ -358,14 +382,14 @@ async def _safe(
                             except Exception:
                                 pass
                         if valid_items:
-                            print(f"      ↩ {fallback_type.__name__} recuperato parzialmente "
-                                  f"({len(valid_items)}/{len(recovered)} elementi validi)")
+                            console.log(f"      ↩ {fallback_type.__name__} recuperato parzialmente "
+                                        f"({len(valid_items)}/{len(recovered)} elementi validi)")
                             return fallback_type(**{list_field: valid_items})
                 except Exception:
                     pass
 
         list_field = next(iter(fallback_type.model_fields))
-        print(f"      ⚠ {fallback_type.__name__} fallback (lista vuota): {exc}")
+        console.log(f"      ⚠ {fallback_type.__name__} fallback (lista vuota): {exc}")
         _register_fallback()
         return fallback_type(**{list_field: []})
 
@@ -426,7 +450,7 @@ async def _extract_with_retry(
         try:
             return await _extract_sequential(extractor, document, summary, client)
         except Exception as exc:
-            print(f"    [attempt {attempt}/{max_attempts}] Estrazione fallita: {exc}")
+            console.log(f"    [attempt {attempt}/{max_attempts}] Estrazione fallita: {exc}")
             if attempt == max_attempts:
                 raise
 
@@ -449,10 +473,10 @@ async def process_patient(
     gold_rows = _load_rows_by_patient(gold_path, patient_id)
 
     if not gold_rows:
-        print(f"  [SKIP] Nessuna riga gold per {patient_id}")
+        console.log(f"  [SKIP] Nessuna riga gold per {patient_id}")
         return
 
-    print(f"\nPaziente {patient_id}: {len(gold_rows)} documenti")
+    console.log(f"\nPaziente {patient_id}: {len(gold_rows)} documenti")
 
     first_gold = PatientSummary.model_validate(gold_rows[0]["summary"])
 
@@ -471,7 +495,7 @@ async def process_patient(
             truncated = document.content[:max_doc_chars] + "\n[DOCUMENT TRUNCATED]"
             document = document.model_copy(update={"content": truncated})
 
-        print(f"  doc_{idx:02d} ({doc_id})  start={doc_meta.get('start_date')}")
+        console.log(f"  doc_{idx:02d} ({doc_id})  start={doc_meta.get('start_date')}")
 
         # Target gold
         gold_summary_before = PatientSummary.model_validate(gold_row["summary"])
@@ -491,19 +515,19 @@ async def process_patient(
         # ----------------------------------------------------------------
         # Scenario A: modello + gold history (inferenza live)
         # ----------------------------------------------------------------
-        print(f"    [A] Inferenza con gold history...")
+        console.log(f"    [A] Inferenza con gold history...")
         delta_a, fallbacks_a = await _extract_with_retry(extractor, document, gold_summary_before, client=llm_client)
         accumulated_a = noop_extractor.update(gold_summary_before, delta_a)
         delta_a_as_summary = noop_extractor.update(empty, delta_a)
         score_final_a = _round(_final_score(gold_summary_after, accumulated_a))
         score_delta_a = _round(_final_score(gold_delta_as_summary, delta_a_as_summary))
         sections_delta_a = _section_scores(gold_delta_as_summary, delta_a_as_summary)
-        print(f"         score_final={score_final_a}  score_delta={score_delta_a}")
+        console.log(f"         score_final={score_final_a}  score_delta={score_delta_a}")
 
         # ----------------------------------------------------------------
         # Scenario B: modello + self history accumulata (inferenza live iterativa)
         # ----------------------------------------------------------------
-        print(f"    [B] Inferenza con self history...")
+        console.log(f"    [B] Inferenza con self history...")
         self_before = self_accumulated
         delta_b, fallbacks_b = await _extract_with_retry(extractor, document, self_before, client=llm_client)
         self_accumulated = noop_extractor.update(self_before, delta_b)
@@ -511,7 +535,7 @@ async def process_patient(
         score_final_b = _round(_final_score(gold_summary_after, self_accumulated))
         score_delta_b = _round(_final_score(gold_delta_as_summary, delta_b_as_summary))
         sections_delta_b = _section_scores(gold_delta_as_summary, delta_b_as_summary)
-        print(f"         score_final={score_final_b}  score_delta={score_delta_b}")
+        console.log(f"         score_final={score_final_b}  score_delta={score_delta_b}")
 
         # ----------------------------------------------------------------
         # Salva JSON completi
@@ -570,7 +594,7 @@ async def process_patient(
             "fallbacks_b": sorted(fallbacks_b),
         })
 
-    print(f"  Completato paziente {patient_id}")
+    console.log(f"  Completato paziente {patient_id}")
 
 
 # ---------------------------------------------------------------------------
