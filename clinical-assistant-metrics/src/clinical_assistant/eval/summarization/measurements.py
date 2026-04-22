@@ -2,8 +2,9 @@ import numpy as np
 from dataclasses import dataclass
 
 from clinical_assistant.summarization.measurements import Measurement, MeasurementEvent
+from clinical_assistant.summarization.encounter import EncounterMeta
 from clinical_assistant.eval.text_similarity import match_names
-from clinical_assistant.eval.sequence_alignment import compare_event_sequences_by_id
+from clinical_assistant.eval.sequence_alignment import compare_event_sequences_by_id, match_by_assignment
 from clinical_assistant.eval.summarization.base import (
     compute_detection_metrics, compute_categorical_metrics, display_peritem_metrics
 )
@@ -45,6 +46,100 @@ def event_similarity(
     )
 
 
+def compare_intra_encounter(
+    pred_points: list[MeasurementEvent],
+    ref_points: list[MeasurementEvent],
+) -> float:
+    """
+    Compare two sets of data_points from the same encounter using Hungarian matching.
+    Returns a score in [0, 1].
+    """
+    if not ref_points and not pred_points:
+        return 1.0
+    if not ref_points or not pred_points:
+        return 0.0
+
+    if len(ref_points) == 1 and len(pred_points) == 1:
+        return event_similarity(pred_points[0], ref_points[0])
+
+    matched_pairs, match_scores = match_by_assignment(
+        pred_items=pred_points,
+        ref_items=ref_points,
+        similarity_fn=event_similarity,
+        threshold=0.0,
+    )
+
+    tp = len(matched_pairs)
+    fp = len(pred_points) - tp
+    fn = len(ref_points) - tp
+
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    coverage_f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+    similarity_score = float(np.mean(match_scores)) if match_scores else 0.0
+
+    return min(1.0, similarity_score * coverage_f1)
+
+
+def compare_measurement_history(
+    pred_data_points: list[tuple[EncounterMeta, MeasurementEvent]],
+    ref_data_points: list[tuple[EncounterMeta, MeasurementEvent]],
+) -> dict:
+    """
+    Combines intra-encounter and inter-encounter history comparison.
+
+    Inter-encounter: group data_points by encounter ID, take last per encounter,
+    then use compare_event_sequences_by_id.
+
+    Intra-encounter: for encounters present in both, compare all data_points
+    within that encounter using Hungarian matching.
+
+    Final score: mean of inter and intra scores.
+    """
+    from collections import defaultdict
+
+    # Group by encounter ID
+    def group_by_enc(data_points):
+        groups = defaultdict(list)
+        metas = {}
+        for meta, e in data_points:
+            groups[meta.id].append(e)
+            metas[meta.id] = meta
+        return groups, metas
+
+    pred_groups, pred_metas = group_by_enc(pred_data_points)
+    ref_groups, ref_metas = group_by_enc(ref_data_points)
+
+    # --- Inter-encounter: use last data_point per encounter ---
+    pred_inter = [(pred_metas[enc_id], events[-1]) for enc_id, events in pred_groups.items()]
+    ref_inter = [(ref_metas[enc_id], events[-1]) for enc_id, events in ref_groups.items()]
+
+    inter_result = compare_event_sequences_by_id(
+        pred_inter,
+        ref_inter,
+        similarity_fn=event_similarity,
+    )
+    inter_score = inter_result["score"]
+
+    # --- Intra-encounter: compare all data_points within common encounters ---
+    common_enc_ids = set(pred_groups.keys()) & set(ref_groups.keys())
+
+    if common_enc_ids:
+        intra_scores = [
+            compare_intra_encounter(pred_groups[enc_id], ref_groups[enc_id])
+            for enc_id in common_enc_ids
+        ]
+        intra_score = float(np.mean(intra_scores))
+    else:
+        intra_score = 0.0
+
+    return {
+        "inter_encounter": inter_score,
+        "intra_encounter": intra_score,
+    }
+
+
 def compute_measurement_metrics(
     predicted: list[Measurement],
     reference: list[Measurement],
@@ -64,14 +159,14 @@ def compute_measurement_metrics(
     ref_map = {m.name.lower(): m for m in reference}
 
     if common:
-        # --- Category ---
+        # --- Category (last data_point) ---
         metrics["category"] = compute_categorical_metrics(
             ref_vals=[ref_map[n].data_points[-1][1].category for n in common],
             pred_vals=[pred_map[n].data_points[-1][1].category for n in common],
             common_weights=common_weights,
         )
 
-        # --- Flag ---
+        # --- Flag (last data_point) ---
         flag_common = [n for n in common if ref_map[n].data_points[-1][1].flag is not None
                        or pred_map[n].data_points[-1][1].flag is not None]
         flag_weights = [common_weights[i] for i, n in enumerate(common) if n in flag_common]
@@ -85,36 +180,39 @@ def compute_measurement_metrics(
         else:
             metrics["flag"] = {}
 
-        # --- Value ---
+        # --- Value (last data_point) ---
         value_scores = [
             compare_value(pred_map[n].data_points[-1][1].value, ref_map[n].data_points[-1][1].value)
             for n in common
         ]
         metrics["value"] = display_peritem_metrics(value_scores, common, weights=common_weights)
 
-        # --- Unit ---
+        # --- Unit (last data_point) ---
         unit_scores = [
             compare_unit(pred_map[n].data_points[-1][1].unit, ref_map[n].data_points[-1][1].unit)
             for n in common
         ]
         metrics["unit"] = display_peritem_metrics(unit_scores, common, weights=common_weights)
 
-        # --- Event history ---
+        # --- Event history (intra + inter encounter) ---
         history_results = [
-            compare_event_sequences_by_id(
+            compare_measurement_history(
                 pred_map[n].data_points,
                 ref_map[n].data_points,
-                similarity_fn=lambda p, r: event_similarity(p, r),
             )
             for n in common
         ]
-        metrics["event_history"] = display_peritem_metrics(history_results, common, weights=common_weights)
+        inter_scores = [r["inter_encounter"] for r in history_results]
+        intra_scores = [r["intra_encounter"] for r in history_results]
+        metrics["event_history_inter"] = display_peritem_metrics(inter_scores, common, weights=common_weights)
+        metrics["event_history_intra"] = display_peritem_metrics(intra_scores, common, weights=common_weights)
 
     else:
         metrics["category"] = {}
         metrics["flag"] = {}
         metrics["value"] = {}
         metrics["unit"] = {}
-        metrics["event_history"] = {}
+        metrics["event_history_inter"] = {}
+        metrics["event_history_intra"] = {}
 
     return metrics

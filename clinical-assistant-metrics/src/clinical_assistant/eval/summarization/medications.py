@@ -30,7 +30,6 @@ def debug_match(pred_name: str, ref_names: set[str]) -> None:
 
 
 @dataclass
-@dataclass
 class EventWeights:
     status: float = 0.4
     dosage: float = 0.3

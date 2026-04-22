@@ -1,103 +1,62 @@
 """
 run_batch_scenarios.py
 
-Esegue la generazione degli scenari A e B per tutti i pazienti presenti
-nel file gold JSONL (es. claude-sonnet-4-6-test.jsonl).
+Esegue SOLO l'estrazione degli scenari A e B per tutti i pazienti presenti
+nel file gold JSONL. La valutazione è delegata a report_deltas.py.
 
 Scenario A — modello + gold history (inferenza live):
   Il modello riceve il documento + storia gold Claude come contesto.
-  Score = similarità tra accumulated_A e il target gold.
 
 Scenario B — modello + self history (inferenza live iterativa):
   Il modello riceve il documento + la propria storia accumulata fino al
-  documento precedente (aggiornata ad ogni passo). Non serve nessun JSONL
-  pre-generato: la storia si costruisce durante l'esecuzione.
-  Score = similarità tra accumulated_B e il target gold.
-
-  Confronto A vs B = effetto del contesto (gold history vs self history,
-  stesso modello).
+  documento precedente (aggiornata ad ogni passo).
 
 Per ogni paziente produce:
-  - JSON completi per documento in:
+  - JSON ricchi di debug per documento:
       outputs/summarization/scenario_comparison/{model_slug}/{patient_id}/
         doc_01_scenario_a.json
         doc_01_scenario_b.json
-  - Una riga nel file JSONL compatto degli score:
-      outputs/summarization/scores/{model_slug}.jsonl
+  - Preds JSONL nel formato atteso da report_deltas.py:
+      outputs/summarization/eval/{model_slug}/scenario_a/preds.jsonl
+      outputs/summarization/eval/{model_slug}/scenario_b/preds.jsonl
 
-Struttura riga JSONL compatto:
+Ogni riga dei preds.jsonl contiene:
   {
-    "patient_id": "...",
-    "document_index": 1,
-    "document_date": "...",
-    "score_final_a": 0.85,
-    "score_final_b": 0.72,
-    "score_delta_a": 0.91,
-    "score_delta_b": 0.78,
-    "sections_delta_a": {"medications": 0.9, ...},
-    "sections_delta_b": {"medications": 0.7, ...}
+    "summary":              {...}   # prior state (gold per A, self per B)
+    "document":             {...}   # encounter completo
+    "target_summary_delta": {...}   # delta gold
+    "pred_summary_delta":   {...}   # delta predetto dal modello
   }
 
-Esecuzione (esempio con Qwen3-1.7B, con template Jinja per disabilitare thinking):
+Flusso completo:
+  1. python run_batch_scenarios.py --model ...
+  2. python report_deltas.py --model {slug}/scenario_a
+  3. python report_deltas.py --model {slug}/scenario_b
+  4. python merge_reports.py --model {slug}
+  5. python grafici/plot_aggregate_scores.py --models {slug}
+
+Esecuzione:
   vllm serve Qwen/Qwen3-1.7B --chat-template ~/qwen3_nonthinking.jinja --max-model-len 32768
   cd clinical-assistant-metrics
   PYTHONPATH=src uv run python scripts/summarization/run_batch_scenarios.py \\
     --gold-path data/claude-sonnet-4-6-test.jsonl \\
     --model Qwen/Qwen3-1.7B
-
-Processare solo alcuni pazienti:
-  PYTHONPATH=src uv run python scripts/summarization/run_batch_scenarios.py \\
-    --gold-path data/claude-sonnet-4-6-test.jsonl \\
-    --model Qwen/Qwen3-1.7B \\
-    --patient-ids 10000032 10000033
 """
 
 import argparse
 import asyncio
 import json
 import logging
-import math
 import re
 import warnings
-from datetime import datetime
-
-logging.basicConfig(level=logging.INFO, format="%(name)s — %(levelname)s — %(message)s")
 from pathlib import Path
 
-from rich.console import Console
-from rich.panel import Panel
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    ProgressColumn,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
-from rich.text import Text
-
-
-class _ClockColumn(ProgressColumn):
-    """Mostra l'ora corrente accanto alla barra di avanzamento."""
-    def render(self, task) -> Text:
-        return Text(datetime.now().strftime("%H:%M:%S"), style="bold cyan")
-
-
-console = Console()
+logging.basicConfig(level=logging.INFO, format="%(name)s — %(levelname)s — %(message)s")
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel, ValidationError
+from rich.console import Console
 
-from clinical_assistant.eval.summarization.aggregate import compute_aggregate_scores
-from clinical_assistant.eval.summarization.allergies import compute_allergy_metrics
-from clinical_assistant.eval.summarization.clinical_problems import compute_clinical_problem_metrics
-from clinical_assistant.eval.summarization.family_history import compute_family_history_metrics
-from clinical_assistant.eval.summarization.measurements import compute_measurement_metrics
-from clinical_assistant.eval.summarization.medications import compute_medication_metrics
-from clinical_assistant.eval.summarization.procedures import compute_procedure_metrics
-from clinical_assistant.eval.summarization.substances import compute_substance_metrics
 from clinical_assistant.summarization.allergies import AllergyOutputFormat
 from clinical_assistant.summarization.clinical_problems import ClinicalProblemOutputFormat
 from clinical_assistant.summarization.encounter import EncounterDocument
@@ -109,10 +68,8 @@ from clinical_assistant.summarization.procedures import ProcedureOutputFormat
 from clinical_assistant.summarization.structured_output import LlamaCppClient, OpenAIClient
 from clinical_assistant.summarization.substances import SubstanceUseOutputFormat
 
-SECTIONS = [
-    "medications", "allergies", "substances",
-    "clinical_problems", "measurements", "family_history", "procedures",
-]
+
+console = Console()
 
 
 # ---------------------------------------------------------------------------
@@ -121,72 +78,6 @@ SECTIONS = [
 class _NoopClient:
     async def structured_output(self, prompt, output_format):
         return None
-
-
-# ---------------------------------------------------------------------------
-# Metriche
-# ---------------------------------------------------------------------------
-
-def _age_score(pred_age: int, ref_age: int, half_life: float = 5.0) -> float:
-    sigma = half_life / math.sqrt(2 * math.log(2))
-    return math.exp(-0.5 * ((pred_age - ref_age) / sigma) ** 2)
-
-
-def _compute_patient_info_metrics(pred: PatientSummary, ref: PatientSummary) -> dict:
-    return {
-        "id": ref.patient_id,
-        "sex": {
-            "reference": ref.sex, "predicted": pred.sex,
-            "correct": pred.sex == ref.sex,
-            "score": 1.0 if pred.sex == ref.sex else 0.0,
-        },
-        "age": {
-            "reference": ref.age, "predicted": pred.age,
-            "correct": pred.age == ref.age,
-            "difference": abs(pred.age - ref.age),
-            "score": _age_score(pred.age, ref.age),
-        },
-    }
-
-
-def _compute_all_metrics(ref: PatientSummary, pred: PatientSummary) -> dict:
-    metrics = {"patient_info": _compute_patient_info_metrics(pred, ref)}
-    if ref.medications or pred.medications:
-        metrics["medications"] = compute_medication_metrics(pred.medications, ref.medications)
-    if ref.allergies or pred.allergies:
-        metrics["allergies"] = compute_allergy_metrics(pred.allergies, ref.allergies)
-    if ref.substances or pred.substances:
-        metrics["substances"] = compute_substance_metrics(pred.substances, ref.substances)
-    if ref.clinical_problems or pred.clinical_problems:
-        metrics["clinical_problems"] = compute_clinical_problem_metrics(pred.clinical_problems, ref.clinical_problems)
-    if ref.measurements or pred.measurements:
-        metrics["measurements"] = compute_measurement_metrics(pred.measurements, ref.measurements)
-    if ref.family_history or pred.family_history:
-        metrics["family_history"] = compute_family_history_metrics(pred.family_history, ref.family_history)
-    if ref.procedures or pred.procedures:
-        metrics["procedures"] = compute_procedure_metrics(pred.procedures, ref.procedures)
-    return metrics
-
-
-def _final_score(reference: PatientSummary, predicted: PatientSummary) -> float | None:
-    metrics = _compute_all_metrics(reference, predicted)
-    scores = compute_aggregate_scores(metrics)
-    ps = scores.get("patient_score")
-    return float(ps) if ps is not None else None
-
-
-def _section_scores(reference: PatientSummary, predicted: PatientSummary) -> dict[str, float]:
-    metrics = _compute_all_metrics(reference, predicted)
-    agg = compute_aggregate_scores(metrics)
-    return {
-        s: agg["sections"][s]["section_score"]
-        for s in SECTIONS
-        if s in agg.get("sections", {})
-    }
-
-
-def _round(v: float | None) -> float | None:
-    return round(v, 6) if v is not None else None
 
 
 # ---------------------------------------------------------------------------
@@ -467,7 +358,8 @@ async def process_patient(
     llm_client,
     model_name: str,
     patient_dir: Path,
-    scores_jsonl: Path,
+    preds_a_path: Path,
+    preds_b_path: Path,
     max_doc_chars: int,
 ) -> None:
     gold_rows = _load_rows_by_patient(gold_path, patient_id)
@@ -505,24 +397,12 @@ async def process_patient(
         else:
             gold_summary_after = noop_extractor.update(gold_summary_before, gold_delta)
 
-        # Summary vuoto per confronto delta puro
-        empty = PatientSummary(
-            patient_id=patient_id, document_ids=[],
-            sex=first_gold.sex, age=first_gold.age,
-        )
-        gold_delta_as_summary = noop_extractor.update(empty, gold_delta)
-
         # ----------------------------------------------------------------
         # Scenario A: modello + gold history (inferenza live)
         # ----------------------------------------------------------------
         console.log(f"    [A] Inferenza con gold history...")
         delta_a, fallbacks_a = await _extract_with_retry(extractor, document, gold_summary_before, client=llm_client)
         accumulated_a = noop_extractor.update(gold_summary_before, delta_a)
-        delta_a_as_summary = noop_extractor.update(empty, delta_a)
-        score_final_a = _round(_final_score(gold_summary_after, accumulated_a))
-        score_delta_a = _round(_final_score(gold_delta_as_summary, delta_a_as_summary))
-        sections_delta_a = _section_scores(gold_delta_as_summary, delta_a_as_summary)
-        console.log(f"         score_final={score_final_a}  score_delta={score_delta_a}")
 
         # ----------------------------------------------------------------
         # Scenario B: modello + self history accumulata (inferenza live iterativa)
@@ -531,14 +411,9 @@ async def process_patient(
         self_before = self_accumulated
         delta_b, fallbacks_b = await _extract_with_retry(extractor, document, self_before, client=llm_client)
         self_accumulated = noop_extractor.update(self_before, delta_b)
-        delta_b_as_summary = noop_extractor.update(empty, delta_b)
-        score_final_b = _round(_final_score(gold_summary_after, self_accumulated))
-        score_delta_b = _round(_final_score(gold_delta_as_summary, delta_b_as_summary))
-        sections_delta_b = _section_scores(gold_delta_as_summary, delta_b_as_summary)
-        console.log(f"         score_final={score_final_b}  score_delta={score_delta_b}")
 
         # ----------------------------------------------------------------
-        # Salva JSON completi
+        # Salva JSON completi (debug)
         # ----------------------------------------------------------------
         base = {
             "patient_id": patient_id,
@@ -562,8 +437,7 @@ async def process_patient(
             "previous_history": gold_row["summary"],
             "predicted_delta": delta_a.model_dump(),
             "accumulated_prediction": accumulated_a.model_dump(),
-            "score_final": score_final_a,
-            "score_delta": score_delta_a,
+            "fallbacks": sorted(fallbacks_a),
         })
 
         _save_json(patient_dir / f"doc_{idx:02d}_scenario_b.json", {
@@ -575,23 +449,24 @@ async def process_patient(
             "previous_history": self_before.model_dump(),
             "predicted_delta": delta_b.model_dump(),
             "accumulated_prediction": self_accumulated.model_dump(),
-            "score_final": score_final_b,
-            "score_delta": score_delta_b,
+            "fallbacks": sorted(fallbacks_b),
         })
 
-        # Salva riga JSONL compatta
-        _append_jsonl(scores_jsonl, {
-            "patient_id": patient_id,
-            "document_index": idx,
-            "document_date": str(doc_meta.get("start_date", "")),
-            "score_final_a": score_final_a,
-            "score_final_b": score_final_b,
-            "score_delta_a": score_delta_a,
-            "score_delta_b": score_delta_b,
-            "sections_delta_a": sections_delta_a,
-            "sections_delta_b": sections_delta_b,
-            "fallbacks_a": sorted(fallbacks_a),
-            "fallbacks_b": sorted(fallbacks_b),
+        # ----------------------------------------------------------------
+        # Salva preds nel formato atteso da report_deltas.py
+        # ----------------------------------------------------------------
+        _append_jsonl(preds_a_path, {
+            "summary": gold_row["summary"],
+            "document": gold_row["document"],
+            "target_summary_delta": gold_row["summary_delta"],
+            "pred_summary_delta": delta_a.model_dump(),
+        })
+
+        _append_jsonl(preds_b_path, {
+            "summary": self_before.model_dump(),
+            "document": gold_row["document"],
+            "target_summary_delta": gold_row["summary_delta"],
+            "pred_summary_delta": delta_b.model_dump(),
         })
 
     console.log(f"  Completato paziente {patient_id}")
@@ -615,7 +490,8 @@ async def main() -> None:
                         help="Tronca documenti a N caratteri (0 = nessun troncamento).")
     parser.add_argument("--provider", default="vllm", choices=["vllm", "llamacpp"])
     parser.add_argument("--output-dir", default="outputs/summarization/scenario_comparison")
-    parser.add_argument("--scores-dir", default="outputs/summarization/scores")
+    parser.add_argument("--eval-dir", default="outputs/summarization/eval",
+                        help="Directory dove salvare i preds per report_deltas.py.")
     parser.add_argument("--patient-ids", nargs="*", default=None,
                         help="Lista di patient_id da processare (default: tutti nel gold).")
     parser.add_argument("--verbose", action="store_true",
@@ -630,18 +506,22 @@ async def main() -> None:
     gold_path = Path(args.gold_path)
     model_slug = args.model.replace("/", "-").replace(".", "-")
     scenario_dir = Path(args.output_dir) / model_slug
-    scores_jsonl = Path(args.scores_dir) / f"{model_slug}.jsonl"
+    eval_model_dir = Path(args.eval_dir) / model_slug
+    preds_a_path = eval_model_dir / "scenario_a" / "preds.jsonl"
+    preds_b_path = eval_model_dir / "scenario_b" / "preds.jsonl"
 
-    # Rimuove il JSONL precedente per evitare duplicati
-    if scores_jsonl.exists():
-        scores_jsonl.unlink()
-        print(f"Rimosso JSONL precedente: {scores_jsonl}")
+    # Rimuove i preds precedenti per evitare duplicati
+    for path in (preds_a_path, preds_b_path):
+        if path.exists():
+            path.unlink()
+            print(f"Rimosso preds precedente: {path}")
 
     patient_ids = args.patient_ids or _load_patient_ids(gold_path)
     print(f"Pazienti da processare: {len(patient_ids)}")
     print(f"Modello: {args.model}  |  Provider: {args.provider}  |  URL: {args.base_url}")
     print(f"JSON completi → {scenario_dir}/")
-    print(f"Score aggregati → {scores_jsonl}\n")
+    print(f"Preds A → {preds_a_path}")
+    print(f"Preds B → {preds_b_path}\n")
 
     _openai = AsyncOpenAI(api_key="EMPTY", base_url=args.base_url)
     if args.provider == "llamacpp":
@@ -667,14 +547,21 @@ async def main() -> None:
                 llm_client=llm_client,
                 model_name=args.model,
                 patient_dir=scenario_dir / patient_id,
-                scores_jsonl=scores_jsonl,
+                preds_a_path=preds_a_path,
+                preds_b_path=preds_b_path,
                 max_doc_chars=args.max_doc_chars,
             )
         except Exception as exc:
             print(f"  [ERRORE] Paziente {patient_id}: {exc}")
             continue
 
-    print(f"\nCompletato. Score salvati in: {scores_jsonl}")
+    print(f"\nEstrazione completata.")
+    print(f"  Preds A → {preds_a_path}")
+    print(f"  Preds B → {preds_b_path}")
+    print(f"\nProssimi passi:")
+    print(f"  python scripts/summarization/report_deltas.py --model {model_slug}/scenario_a")
+    print(f"  python scripts/summarization/report_deltas.py --model {model_slug}/scenario_b")
+    print(f"  python scripts/summarization/merge_reports.py --model {model_slug}")
 
 
 if __name__ == "__main__":
