@@ -361,6 +361,7 @@ async def process_patient(
     preds_a_path: Path,
     preds_b_path: Path,
     max_doc_chars: int,
+    no_history: bool = False,
 ) -> None:
     gold_rows = _load_rows_by_patient(gold_path, patient_id)
 
@@ -368,15 +369,19 @@ async def process_patient(
         console.log(f"  [SKIP] Nessuna riga gold per {patient_id}")
         return
 
-    console.log(f"\nPaziente {patient_id}: {len(gold_rows)} documenti")
+    console.log(f"\nPaziente {patient_id}: {len(gold_rows)} documenti"
+                + (" [ABLATION: no-history]" if no_history else ""))
 
     first_gold = PatientSummary.model_validate(gold_rows[0]["summary"])
 
+    def _empty_summary() -> PatientSummary:
+        return PatientSummary(
+            patient_id=patient_id, document_ids=[],
+            sex=first_gold.sex, age=first_gold.age,
+        )
+
     # Stato accumulato per scenario B (self history, aggiornato ad ogni documento)
-    self_accumulated = PatientSummary(
-        patient_id=patient_id, document_ids=[],
-        sex=first_gold.sex, age=first_gold.age,
-    )
+    self_accumulated = _empty_summary()
 
     for idx, gold_row in enumerate(gold_rows, start=1):
         doc_id = str(gold_row["document"]["meta"]["id"])
@@ -398,19 +403,26 @@ async def process_patient(
             gold_summary_after = noop_extractor.update(gold_summary_before, gold_delta)
 
         # ----------------------------------------------------------------
-        # Scenario A: modello + gold history (inferenza live)
+        # Scenario A: modello + gold history (o empty in ablation)
         # ----------------------------------------------------------------
-        console.log(f"    [A] Inferenza con gold history...")
-        delta_a, fallbacks_a = await _extract_with_retry(extractor, document, gold_summary_before, client=llm_client)
-        accumulated_a = noop_extractor.update(gold_summary_before, delta_a)
+        prior_a = _empty_summary() if no_history else gold_summary_before
+        history_tag = "EMPTY (ablation)" if no_history else "gold history"
+        console.log(f"    [A] Inferenza con {history_tag}...")
+        delta_a, fallbacks_a = await _extract_with_retry(extractor, document, prior_a, client=llm_client)
+        accumulated_a = noop_extractor.update(prior_a, delta_a)
 
         # ----------------------------------------------------------------
-        # Scenario B: modello + self history accumulata (inferenza live iterativa)
+        # Scenario B: modello + self history accumulata (saltato in ablation)
         # ----------------------------------------------------------------
-        console.log(f"    [B] Inferenza con self history...")
-        self_before = self_accumulated
-        delta_b, fallbacks_b = await _extract_with_retry(extractor, document, self_before, client=llm_client)
-        self_accumulated = noop_extractor.update(self_before, delta_b)
+        if no_history:
+            delta_b = None
+            fallbacks_b = set()
+            self_before = _empty_summary()
+        else:
+            console.log(f"    [B] Inferenza con self history...")
+            self_before = self_accumulated
+            delta_b, fallbacks_b = await _extract_with_retry(extractor, document, self_before, client=llm_client)
+            self_accumulated = noop_extractor.update(self_before, delta_b)
 
         # ----------------------------------------------------------------
         # Salva JSON completi (debug)
@@ -431,43 +443,46 @@ async def process_patient(
         _save_json(patient_dir / f"doc_{idx:02d}_scenario_a.json", {
             **base,
             "scenario": "A",
-            "description": f"{model_name} con gold history (Claude) come contesto. Inferenza live.",
-            "history_source": "gold_claude",
+            "description": (f"{model_name} con history vuota (ablation)." if no_history
+                            else f"{model_name} con gold history (Claude) come contesto. Inferenza live."),
+            "history_source": "empty" if no_history else "gold_claude",
             "model_source": model_name,
-            "previous_history": gold_row["summary"],
+            "previous_history": prior_a.model_dump(),
             "predicted_delta": delta_a.model_dump(),
             "accumulated_prediction": accumulated_a.model_dump(),
             "fallbacks": sorted(fallbacks_a),
         })
 
-        _save_json(patient_dir / f"doc_{idx:02d}_scenario_b.json", {
-            **base,
-            "scenario": "B",
-            "description": f"{model_name} con self history accumulata (inferenza live iterativa).",
-            "history_source": f"self_predicted_{model_name.replace('/', '-')}",
-            "model_source": model_name,
-            "previous_history": self_before.model_dump(),
-            "predicted_delta": delta_b.model_dump(),
-            "accumulated_prediction": self_accumulated.model_dump(),
-            "fallbacks": sorted(fallbacks_b),
-        })
+        if delta_b is not None:
+            _save_json(patient_dir / f"doc_{idx:02d}_scenario_b.json", {
+                **base,
+                "scenario": "B",
+                "description": f"{model_name} con self history accumulata (inferenza live iterativa).",
+                "history_source": f"self_predicted_{model_name.replace('/', '-')}",
+                "model_source": model_name,
+                "previous_history": self_before.model_dump(),
+                "predicted_delta": delta_b.model_dump(),
+                "accumulated_prediction": self_accumulated.model_dump(),
+                "fallbacks": sorted(fallbacks_b),
+            })
 
         # ----------------------------------------------------------------
         # Salva preds nel formato atteso da report_deltas.py
         # ----------------------------------------------------------------
         _append_jsonl(preds_a_path, {
-            "summary": gold_row["summary"],
+            "summary": prior_a.model_dump(),
             "document": gold_row["document"],
             "target_summary_delta": gold_row["summary_delta"],
             "pred_summary_delta": delta_a.model_dump(),
         })
 
-        _append_jsonl(preds_b_path, {
-            "summary": self_before.model_dump(),
-            "document": gold_row["document"],
-            "target_summary_delta": gold_row["summary_delta"],
-            "pred_summary_delta": delta_b.model_dump(),
-        })
+        if delta_b is not None:
+            _append_jsonl(preds_b_path, {
+                "summary": self_before.model_dump(),
+                "document": gold_row["document"],
+                "target_summary_delta": gold_row["summary_delta"],
+                "pred_summary_delta": delta_b.model_dump(),
+            })
 
     console.log(f"  Completato paziente {patient_id}")
 
@@ -499,6 +514,9 @@ async def main() -> None:
     parser.add_argument("--frequency-penalty", type=float, default=None,
                         help="Penalità proporzionale alla frequenza di ogni token (range [-2, 2]). "
                              "Utile per ridurre loop di ripetizione. Default: non applicata.")
+    parser.add_argument("--no-history", action="store_true",
+                        help="ABLATION: passa una history vuota invece della gold per scenario A, "
+                             "e disabilita scenario B. Usa con --eval-dir separato per non sovrascrivere.")
     args = parser.parse_args()
 
     logging.getLogger().setLevel(logging.INFO if args.verbose else logging.WARNING)
@@ -550,6 +568,7 @@ async def main() -> None:
                 preds_a_path=preds_a_path,
                 preds_b_path=preds_b_path,
                 max_doc_chars=args.max_doc_chars,
+                no_history=args.no_history,
             )
         except Exception as exc:
             print(f"  [ERRORE] Paziente {patient_id}: {exc}")
