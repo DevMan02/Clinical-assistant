@@ -2,6 +2,8 @@ import argparse
 import time
 from collections import defaultdict
 from pathlib import Path
+
+import numpy as np
 from dotenv import load_dotenv
 from rich.progress import Progress, SpinnerColumn, BarColumn, MofNCompleteColumn, TextColumn, TimeElapsedColumn
 
@@ -29,6 +31,44 @@ def compute_by_encounter_index(
     return result
 
 
+def compute_macro_by_patient(
+    per_patient_summaries: list[dict],
+    llm_name: str,
+    digits: int = 6,
+) -> dict:
+    """
+    Macro-avg: ogni paziente pesa uguale (indipendente dal numero di encounter).
+    Input: lista dei report per-paziente, ciascuno con patient_score e sections.
+    """
+    patient_means = [
+        s["patient_score"] for s in per_patient_summaries
+        if s.get("patient_score") is not None
+    ]
+
+    section_keys = set()
+    for s in per_patient_summaries:
+        section_keys.update(s.get("sections", {}).keys())
+
+    section_macro = {}
+    for section in section_keys:
+        values = [
+            s["sections"][section]["section_score"]
+            for s in per_patient_summaries
+            if s.get("sections", {}).get(section, {}).get("section_score") is not None
+        ]
+        section_macro[section] = {
+            "section_score": round(float(np.mean(values)), digits) if values else None,
+            "n_patients": len(values),
+        }
+
+    return {
+        "llm": llm_name,
+        "n_patients": len(per_patient_summaries),
+        "patient_score": round(float(np.mean(patient_means)), digits) if patient_means else None,
+        "sections": section_macro,
+    }
+
+
 def zero_scores(encounter_index: int) -> dict:
     return {"patient_score": 0.0, "sections": {}, "encounter_index": encounter_index}
 
@@ -43,6 +83,7 @@ def run_delta_eval(predicted_path: Path, reference_path: Path) -> None:
 
     all_scores = []
     all_scores_by_index: dict[int, list[dict]] = defaultdict(list)
+    per_patient_summaries: list[dict] = []
     encounter_count_distribution: dict[int, int] = defaultdict(int)
 
     # Only evaluate patients present in both reference and predicted
@@ -111,12 +152,14 @@ def run_delta_eval(predicted_path: Path, reference_path: Path) -> None:
                 progress.update(task, status=f"[cyan]~{mins}m{secs:02d}s left ({avg:.1f}s/ex)")
                 progress.advance(task)
 
+            patient_summary = compute_summary(patient_scores, llm_name=llm_name)
+            per_patient_summaries.append(patient_summary)
             save_json(
                 {
                     "patient_id": patient_id,
                     "n_encounters_expected": n_expected,
                     "n_encounters_found": n_actual,
-                    **compute_summary(patient_scores, llm_name=llm_name),
+                    **patient_summary,
                 },
                 llm_dir / "patients" / f"{patient_id}_report.json"
             )
@@ -130,6 +173,7 @@ def run_delta_eval(predicted_path: Path, reference_path: Path) -> None:
         },
         "by_encounter_index": compute_by_encounter_index(all_scores_by_index),
         "global": compute_summary(all_scores, llm_name),
+        "global_by_patient": compute_macro_by_patient(per_patient_summaries, llm_name),
     }
     save_json(report, llm_dir / "delta_report.json")
 
