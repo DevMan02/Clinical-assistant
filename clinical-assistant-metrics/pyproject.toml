@@ -19,6 +19,7 @@ dependencies = [
     "rapidfuzz>=3.0.0",
     "scipy>=1.15.0",
     "sentence-transformers>=4.0.0",
+    "rich>=15.0.0",
 ]
 
 [project.optional-dependencies]
